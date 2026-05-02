@@ -1,24 +1,24 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
     {
+      "version": "1.2.1",
+      "date": "2026-05-02",
+      "notes": "SEND OUT section (Share File + WhatsApp/Email/Print/Copy) added to Chat, Paragraph, Email, Translator, Exercise. Topbar updated to 'Grammar.AI by Nik'. Home footer removed. Attachment fixed on Android (file input now attached to document.body, no display:none)."
+    },
+    {
       "version": "1.2.0",
       "date": "2026-05-02",
-      "notes": "Notes module with 6-digit master password, 3 note types (Quick/Daily/Study), tags, AI tools (improve/summarise/translate/explain), full toolbar, export TXT/JSON. Install App button in Settings. Export filenames now use Module_v1.2.0_2026-05-02 format."
+      "notes": "Notes module with 6-digit master password. Install App in Settings. Export filenames use Module+Version+Date format."
     },
     {
       "version": "1.1.1",
       "date": "2026-05-02",
-      "notes": "4 new modules: Paragraph, Email, Translator, Exercise (Tense/Flash/Vocab/Story), Timezone. Worker contract fixed. Scroll fixed. Shared toolbar component."
-    },
-    {
-      "version": "1.1.0",
-      "date": "2026-05-02",
-      "notes": "Responsive design. Worker proxy restored. Persistent Storage API. Chat layout overhaul."
+      "notes": "4 new modules: Paragraph, Email, Translator, Exercise+Timezone. Worker contract fixed. Scroll fixed. Shared toolbar."
     },
     {
       "version": "1.0.0",
