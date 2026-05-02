@@ -1,6 +1,5 @@
 /* ────────────────────────────────────────────────────────────────
-   HOME SCREEN · modules grid
-   Renders the "Sign-Up Kit / Reader / Vault" style cards.
+   HOME · modules grid + status strip
    ──────────────────────────────────────────────────────────────── */
 
 import { esc } from './ui.js';
@@ -9,20 +8,24 @@ import { go } from './router.js';
 import { AI } from './ai.js';
 
 let _versionInfo = null;
-
 export function setVersionInfo(v) { _versionInfo = v; }
 
 export function renderHome(host) {
   const mods = getModules();
   const ready = mods.filter(m => m.status === 'ready').length;
   const soon  = mods.filter(m => m.status === 'soon').length;
+
   const keysSet = AI.getFallbackOrder().filter(id => !!AI.getKey(id)).length;
+  const total = AI.getFallbackOrder().length;
+  const hasW = AI.hasWorker();
+  const route = AI.hasAnyRoute() ? (hasW ? 'WORKER + KEYS' : 'DIRECT KEYS') : 'NOT CONFIGURED';
+  const routeOk = AI.hasAnyRoute();
 
   host.innerHTML = `
     <div class="page-inner home">
       <div class="kicker">
         <span>HOME · OVERVIEW</span>
-        <span class="lime">● v${esc(_versionInfo?.version || '1.0.0')}</span>
+        <span class="lime">● v${esc(_versionInfo?.version || '1.1.0')}</span>
       </div>
       <div class="headline">Grammar.AI</div>
       <div class="subline">
@@ -34,19 +37,19 @@ export function renderHome(host) {
       <!-- Status strip -->
       <div class="status-strip">
         <div class="status-cell">
+          <div class="status-lbl">AI ROUTE</div>
+          <div class="status-val ${routeOk ? 'lime' : 'muted'}" style="font-size:18px;">${routeOk ? '✓' : '—'}</div>
+          <div class="status-sub">${esc(route)}</div>
+        </div>
+        <div class="status-cell">
           <div class="status-lbl">PROVIDERS</div>
-          <div class="status-val ${keysSet ? 'lime' : 'muted'}">${keysSet}/4</div>
-          <div class="status-sub">${keysSet ? 'KEYS ACTIVE' : 'NOT CONFIGURED'}</div>
+          <div class="status-val ${keysSet ? 'lime' : 'muted'}">${keysSet}<span class="muted" style="font-size:0.6em;">/${total}</span></div>
+          <div class="status-sub">KEYS ACTIVE</div>
         </div>
         <div class="status-cell">
           <div class="status-lbl">MODULES</div>
-          <div class="status-val lime">${ready}<span class="muted">/${ready+soon}</span></div>
+          <div class="status-val lime">${ready}<span class="muted" style="font-size:0.6em;">/${ready+soon}</span></div>
           <div class="status-sub">READY</div>
-        </div>
-        <div class="status-cell">
-          <div class="status-lbl">STORAGE</div>
-          <div class="status-val">LOCAL</div>
-          <div class="status-sub">NO BACKEND</div>
         </div>
       </div>
 
@@ -60,13 +63,12 @@ export function renderHome(host) {
         <div class="ticks">${'<i></i>'.repeat(48)}</div>
         <div class="footer-row">
           <span class="mono dim tu" style="font-size:9px;">BUILD ${esc(_versionInfo?.build || '—')}</span>
-          <span class="mono dim tu" style="font-size:9px;">${esc((_versionInfo?.channel || 'stable').toUpperCase())} CHANNEL</span>
+          <span class="mono dim tu" style="font-size:9px;">${esc((_versionInfo?.channel || 'stable').toUpperCase())} · LOCAL</span>
         </div>
       </div>
     </div>
   `;
 
-  // Wire clicks
   host.querySelectorAll('[data-mod]').forEach(card => {
     const id = card.getAttribute('data-mod');
     const status = card.getAttribute('data-status');
