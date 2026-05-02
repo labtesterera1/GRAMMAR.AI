@@ -1,19 +1,24 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
     {
+      "version": "1.1.0",
+      "date": "2026-05-02",
+      "notes": "Major: Responsive design — desktop side-rail, multi-column home, two-pane settings. Worker proxy restored with mode toggle. Persistent Storage API with live usage. Chat layout overhaul — composer no longer overlaps content, fixed-height stream, keyboard shortcuts."
+    },
+    {
       "version": "1.0.1",
       "date": "2026-05-02",
-      "notes": "Default language is now EN. No-key flow opens a friendly setup sheet that takes you straight to Settings. Welcome card shows a SETUP button when no provider key is present."
+      "notes": "Default language is now EN. No-key flow opens a friendly setup sheet. Welcome card shows SETUP button when no provider key is present."
     },
     {
       "version": "1.0.0",
       "date": "2026-05-02",
-      "notes": "Initial SmartApp release. Modular shell + JSON config. Chat module live. Paragraph, Email, Translator, Notes, Timezone scheduled."
+      "notes": "Initial SmartApp release. Modular shell + JSON config. Chat module live. 5 modules scheduled."
     }
   ]
 }
