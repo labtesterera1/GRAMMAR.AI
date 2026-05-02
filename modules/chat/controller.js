@@ -131,6 +131,20 @@ export default async function init({ root, module }) {
     toast('History cleared', 'success');
   });
 
+  // Download ALL conversation as single .txt file
+  $('#chat-download-all', root).addEventListener('click', () => {
+    if (state.history.length === 0) { toast('No conversation yet'); return; }
+    const v = '1.2.3';
+    const d = new Date().toISOString().slice(0,10);
+    const lines = state.history.map(m => {
+      const who = m.role === 'user' ? 'YOU' : 'GRAMMAR.AI';
+      return `[${new Date(m.ts).toISOString()}] ${who}:\n${m.content}\n`;
+    }).join('\n---\n\n');
+    const header = `Grammar.AI — Full Chat Export\n${'='.repeat(50)}\nDate: ${new Date().toLocaleString('en-IN')}\nMessages: ${state.history.length}\n${'='.repeat(50)}\n\n`;
+    downloadFile(`Grammar.AI_v${v}_Chat-All_${d}.txt`, header + lines, 'text/plain');
+    toast('Downloaded', 'success');
+  });
+
   $('#chat-export', root).addEventListener('click', () => {
     if (state.history.length === 0) { toast('No history to export'); return; }
     const v = '1.2.1';
