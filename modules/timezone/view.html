@@ -1,0 +1,70 @@
+<div class="page-inner">
+  <div class="kicker">
+    <span data-bind="moduleNum">MOD 07 / TIMEZONE</span>
+    <span class="lime">● LIVE</span>
+  </div>
+  <div class="headline">Timezone</div>
+  <div class="subline">
+    <span>CONVERT · WORLD · CLOCK</span>
+    <span id="tz-localnow">—</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <!-- Result panel -->
+  <div class="frame subtle tz-result mt-12">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+
+    <div class="tz-zone">
+      <div class="tz-from-row">
+        <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:0.18em;">FROM</div>
+        <div class="serif tz-time" id="tz-from-time">—:—</div>
+        <div class="mono" id="tz-from-label" style="font-size:11px;color:var(--muted);">—</div>
+        <div class="mono" id="tz-from-date" style="font-size:10px;color:var(--dim);"></div>
+      </div>
+    </div>
+
+    <div class="tz-divider"></div>
+
+    <div class="tz-zone">
+      <div class="tz-to-row">
+        <div class="mono lime" style="font-size:9px;letter-spacing:0.18em;">TO</div>
+        <div class="serif tz-time lime" id="tz-to-time">—:—</div>
+        <div class="mono" id="tz-to-label" style="font-size:11px;color:var(--text);">—</div>
+        <div class="mono" id="tz-to-date" style="font-size:10px;color:var(--dim);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="s-ttl"><span>CONVERT</span></div>
+
+  <div class="row gap-12" style="align-items:flex-end;">
+    <div style="flex:1;">
+      <div class="field-label">FROM</div>
+      <select class="select" id="tz-from"></select>
+    </div>
+    <button class="btn btn-icon" id="tz-swap" title="Swap">⇄</button>
+    <div style="flex:1;">
+      <div class="field-label">TO</div>
+      <select class="select" id="tz-to"></select>
+    </div>
+  </div>
+
+  <div class="row gap-12 mt-12" style="align-items:flex-end;">
+    <div style="flex:1;">
+      <div class="field-label">DATE &amp; TIME</div>
+      <input type="datetime-local" class="input" id="tz-datetime" />
+    </div>
+    <button class="btn" id="tz-now">NOW</button>
+  </div>
+
+  <!-- World clock -->
+  <div class="s-ttl"><span>WORLD CLOCK</span><span class="lime">● LIVE</span></div>
+  <div class="world-clock" id="world-clock"></div>
+</div>

@@ -1,0 +1,32 @@
+{
+  "id": "timezone",
+  "name": "Timezone",
+  "version": "1.0.0",
+  "description": "Convert times across zones with live world clock.",
+  "icon": "🕐",
+  "options": {
+    "zones": [
+      { "value": "Asia/Kolkata",       "label": "🇮🇳 India (IST)" },
+      { "value": "UTC",                "label": "🌐 UTC" },
+      { "value": "America/New_York",   "label": "🇺🇸 New York" },
+      { "value": "America/Los_Angeles","label": "🇺🇸 Los Angeles" },
+      { "value": "America/Chicago",    "label": "🇺🇸 Chicago" },
+      { "value": "Europe/London",      "label": "🇬🇧 London" },
+      { "value": "Europe/Paris",       "label": "🇫🇷 Paris" },
+      { "value": "Europe/Berlin",      "label": "🇩🇪 Berlin" },
+      { "value": "Asia/Dubai",         "label": "🇦🇪 Dubai" },
+      { "value": "Asia/Singapore",     "label": "🇸🇬 Singapore" },
+      { "value": "Asia/Tokyo",         "label": "🇯🇵 Tokyo" },
+      { "value": "Asia/Shanghai",      "label": "🇨🇳 Shanghai" },
+      { "value": "Australia/Sydney",   "label": "🇦🇺 Sydney" }
+    ],
+    "worldClock": [
+      { "name": "India",     "zone": "Asia/Kolkata",     "flag": "🇮🇳" },
+      { "name": "New York",  "zone": "America/New_York", "flag": "🇺🇸" },
+      { "name": "London",    "zone": "Europe/London",    "flag": "🇬🇧" },
+      { "name": "Dubai",     "zone": "Asia/Dubai",       "flag": "🇦🇪" },
+      { "name": "Singapore", "zone": "Asia/Singapore",   "flag": "🇸🇬" },
+      { "name": "Tokyo",     "zone": "Asia/Tokyo",       "flag": "🇯🇵" }
+    ]
+  }
+}
