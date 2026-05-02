@@ -1,0 +1,119 @@
+/* ────────────────────────────────────────────────────────────────
+   HOME · module cards & status strip
+   ──────────────────────────────────────────────────────────────── */
+
+.home { padding-bottom: 32px; }
+
+/* Status strip */
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 18px;
+  border: 0.5px solid var(--border);
+  background: var(--border);
+}
+.status-cell {
+  background: var(--surface);
+  padding: 12px 14px;
+  text-align: left;
+}
+.status-lbl {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.status-val {
+  font-family: var(--serif);
+  font-size: 28px;
+  line-height: 1;
+  margin-top: 4px;
+  color: var(--text);
+}
+.status-val.muted { color: var(--muted); }
+.status-val.lime { color: var(--lime); }
+.status-sub {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--dim);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Module grid */
+.mod-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mod-card {
+  position: relative;
+  text-align: left;
+  padding: 18px 20px 16px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  width: 100%;
+  display: block;
+  transition: all 0.18s var(--ease);
+}
+.mod-card:not(:disabled):hover {
+  background: var(--surface-2);
+  border-color: var(--lime-dim);
+}
+.mod-card:not(:disabled):active { transform: scale(0.99); }
+.mod-card:disabled { cursor: not-allowed; opacity: 0.78; }
+
+.mod-num {
+  position: absolute;
+  top: 12px; right: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.18em;
+}
+.mod-card-title {
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.mod-card-tagline {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.mod-card-foot {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mod-arrow {
+  font-family: var(--mono);
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1;
+}
+.mod-card:not(:disabled):hover .mod-arrow { color: var(--lime); }
+
+/* Soft glow on the small badge dot when ready */
+.mod-card[data-status="ready"] .badge-ready::before {
+  animation: pulse 2.4s var(--ease) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* Footer */
+.footer-blk { margin-top: 24px; }
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
