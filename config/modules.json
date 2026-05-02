@@ -1,0 +1,66 @@
+{
+  "$schema": "Drives the home screen and bottom navigation. To add a module: append an entry, set status to 'ready', and create modules/<id>/ with manifest.json + view.html + controller.js. To remove: delete the entry. Nothing else needs editing.",
+  "modules": [
+    {
+      "id": "chat",
+      "num": "01",
+      "name": "Chat",
+      "tagline": "ASK · LEARN · CORRECT",
+      "icon": "💬",
+      "status": "ready",
+      "order": 1,
+      "showInNav": true,
+      "manifest": "modules/chat/manifest.json"
+    },
+    {
+      "id": "paragraph",
+      "num": "02",
+      "name": "Paragraph",
+      "tagline": "WRITE · CORRECT · IMPROVE",
+      "icon": "✏️",
+      "status": "soon",
+      "order": 2,
+      "showInNav": true
+    },
+    {
+      "id": "email",
+      "num": "03",
+      "name": "Email",
+      "tagline": "DRAFT · POLISH · SEND",
+      "icon": "✉️",
+      "status": "soon",
+      "order": 3,
+      "showInNav": true
+    },
+    {
+      "id": "translator",
+      "num": "04",
+      "name": "Translator",
+      "tagline": "EN · HI · CONVERT",
+      "icon": "🔄",
+      "status": "soon",
+      "order": 4,
+      "showInNav": true
+    },
+    {
+      "id": "notes",
+      "num": "05",
+      "name": "Notes",
+      "tagline": "WRITE · VAULT · EXPORT",
+      "icon": "📋",
+      "status": "soon",
+      "order": 5,
+      "showInNav": true
+    },
+    {
+      "id": "timezone",
+      "num": "06",
+      "name": "Timezone",
+      "tagline": "CONVERT · WORLD · CLOCK",
+      "icon": "🕐",
+      "status": "soon",
+      "order": 6,
+      "showInNav": true
+    }
+  ]
+}

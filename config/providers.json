@@ -1,0 +1,42 @@
+{
+  "$schema": "AI provider definitions for direct browser calls (no Worker, no backend). Order = fallback order. To add a provider: append an entry. To remove: delete the entry. Settings page reads this list automatically.",
+  "fallbackOrder": ["groq", "cerebras", "gemini", "mistral"],
+  "providers": {
+    "groq": {
+      "label": "Groq",
+      "icon": "⚡",
+      "model": "llama-3.3-70b-versatile",
+      "endpoint": "https://api.groq.com/openai/v1/chat/completions",
+      "format": "openai",
+      "keyHelp": "Get free key at console.groq.com",
+      "keyUrl": "https://console.groq.com/keys"
+    },
+    "cerebras": {
+      "label": "Cerebras",
+      "icon": "🧠",
+      "model": "llama-3.3-70b",
+      "endpoint": "https://api.cerebras.ai/v1/chat/completions",
+      "format": "openai",
+      "keyHelp": "Get free key at cloud.cerebras.ai",
+      "keyUrl": "https://cloud.cerebras.ai/platform"
+    },
+    "gemini": {
+      "label": "Gemini",
+      "icon": "💎",
+      "model": "gemini-2.5-flash",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+      "format": "gemini",
+      "keyHelp": "Get free key at aistudio.google.com",
+      "keyUrl": "https://aistudio.google.com/app/apikey"
+    },
+    "mistral": {
+      "label": "Mistral",
+      "icon": "🌬️",
+      "model": "mistral-small-latest",
+      "endpoint": "https://api.mistral.ai/v1/chat/completions",
+      "format": "openai",
+      "keyHelp": "Get free key at console.mistral.ai",
+      "keyUrl": "https://console.mistral.ai/api-keys/"
+    }
+  }
+}
