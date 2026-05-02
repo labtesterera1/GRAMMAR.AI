@@ -1,5 +1,5 @@
 {
-  "$schema": "Drives the home screen and bottom navigation. To add a module: append an entry, set status to 'ready', and create modules/<id>/ with manifest.json + view.html + controller.js. To remove: delete the entry. Nothing else needs editing.",
+  "$schema": "Drives home + nav. Add module: append entry, drop folder under modules/<id>/. Remove: delete entry.",
   "modules": [
     {
       "id": "chat",
@@ -9,8 +9,7 @@
       "icon": "💬",
       "status": "ready",
       "order": 1,
-      "showInNav": true,
-      "manifest": "modules/chat/manifest.json"
+      "showInNav": true
     },
     {
       "id": "paragraph",
@@ -18,7 +17,7 @@
       "name": "Paragraph",
       "tagline": "WRITE · CORRECT · IMPROVE",
       "icon": "✏️",
-      "status": "soon",
+      "status": "ready",
       "order": 2,
       "showInNav": true
     },
@@ -28,7 +27,7 @@
       "name": "Email",
       "tagline": "DRAFT · POLISH · SEND",
       "icon": "✉️",
-      "status": "soon",
+      "status": "ready",
       "order": 3,
       "showInNav": true
     },
@@ -38,28 +37,38 @@
       "name": "Translator",
       "tagline": "EN · HI · CONVERT",
       "icon": "🔄",
-      "status": "soon",
+      "status": "ready",
       "order": 4,
       "showInNav": true
     },
     {
-      "id": "notes",
+      "id": "exercise",
       "num": "05",
-      "name": "Notes",
-      "tagline": "WRITE · VAULT · EXPORT",
-      "icon": "📋",
-      "status": "soon",
+      "name": "Exercise",
+      "tagline": "TENSE · FLASH · VOCAB · STORY",
+      "icon": "🎯",
+      "status": "ready",
       "order": 5,
       "showInNav": true
     },
     {
-      "id": "timezone",
+      "id": "notes",
       "num": "06",
+      "name": "Notes",
+      "tagline": "WRITE · VAULT · EXPORT",
+      "icon": "📋",
+      "status": "soon",
+      "order": 6,
+      "showInNav": true
+    },
+    {
+      "id": "timezone",
+      "num": "07",
       "name": "Timezone",
       "tagline": "CONVERT · WORLD · CLOCK",
       "icon": "🕐",
-      "status": "soon",
-      "order": 6,
+      "status": "ready",
+      "order": 7,
       "showInNav": true
     }
   ]
