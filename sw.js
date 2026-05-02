@@ -7,7 +7,7 @@
    - API calls: never cached (handled by browser, sent direct)
    ──────────────────────────────────────────────────────────────── */
 
-const VERSION = 'gai-v1.1.0';
+const VERSION = 'gai-v1.1.1';
 const SHELL_CACHE  = `${VERSION}-shell`;
 const CONFIG_CACHE = `${VERSION}-config`;
 
@@ -18,10 +18,7 @@ const SHELL_URLS = [
   'assets/theme.css',
   'assets/home.css',
   'assets/settings.css',
-  'modules/chat/chat.css',
-  'modules/chat/view.html',
-  'modules/chat/controller.js',
-  'modules/chat/manifest.json',
+  'assets/modules.css',
   'core/app.js',
   'core/router.js',
   'core/loader.js',
@@ -30,6 +27,27 @@ const SHELL_URLS = [
   'core/storage.js',
   'core/ui.js',
   'core/ai.js',
+  'core/toolbar.js',
+  'modules/chat/chat.css',
+  'modules/chat/view.html',
+  'modules/chat/controller.js',
+  'modules/chat/manifest.json',
+  'modules/paragraph/view.html',
+  'modules/paragraph/controller.js',
+  'modules/paragraph/manifest.json',
+  'modules/email/view.html',
+  'modules/email/controller.js',
+  'modules/email/manifest.json',
+  'modules/translator/view.html',
+  'modules/translator/controller.js',
+  'modules/translator/manifest.json',
+  'modules/exercise/view.html',
+  'modules/exercise/controller.js',
+  'modules/exercise/manifest.json',
+  'modules/timezone/view.html',
+  'modules/timezone/controller.js',
+  'modules/timezone/manifest.json',
+  'modules/timezone/timezone.css',
   'icons/icon-192.png',
   'icons/icon-512.png'
 ];

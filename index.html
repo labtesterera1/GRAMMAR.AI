@@ -15,15 +15,17 @@
   <link rel="stylesheet" href="assets/theme.css" />
   <link rel="stylesheet" href="assets/home.css" />
   <link rel="stylesheet" href="assets/settings.css" />
+  <link rel="stylesheet" href="assets/modules.css" />
   <link rel="stylesheet" href="modules/chat/chat.css" />
+  <link rel="stylesheet" href="modules/timezone/timezone.css" />
 </head>
 <body>
 
-  <!-- Topbar (mobile + desktop) -->
+  <!-- Topbar -->
   <header class="topbar">
     <div class="topbar-brand">
       <span class="name" id="brand-name">Grammar.AI</span>
-      <span class="ver" id="brand-ver">v1.1.0</span>
+      <span class="ver" id="brand-ver">v1.1.1</span>
       <span class="topbar-route" id="topbar-route">/ HOME</span>
     </div>
     <div class="topbar-actions">
@@ -32,13 +34,13 @@
     </div>
   </header>
 
-  <!-- Main app body: side rail + content (only desktop shows side rail) -->
+  <!-- Main app body -->
   <main class="app">
     <aside class="side-rail" id="side-rail" aria-label="Navigation"></aside>
-    <div class="app-content" id="app-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+    <div class="app-content" id="app-content"></div>
   </main>
 
-  <!-- Bottom nav (mobile only) -->
+  <!-- Bottom nav (mobile) -->
   <nav class="bnav" aria-label="Modules">
     <div class="bnav-inner" id="bnav-inner"></div>
   </nav>
