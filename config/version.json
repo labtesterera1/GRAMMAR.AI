@@ -1,14 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
     {
+      "version": "1.2.3",
+      "date": "2026-05-02",
+      "notes": "Exercise crash fixed (elTenseSendOut hoisting). Chat single download-all button. Email/Translator/Notes: attachment fixed, emoji added, SPEAK/COPY/DOWNLOAD, SEND OUT. New app icon."
+    },
+    {
       "version": "1.2.2",
       "date": "2026-05-02",
-      "notes": "Toolbar v2: all tools work without text selection (auto-detect word at cursor). Emoji picker added (😊). Exercise CLEAR buttons on all 4 sub-tabs. Chat welcome updated to 'Namaste Nik!'. Chat per-bubble actions: COPY / REUSE / DOWNLOAD."
+      "notes": "Toolbar v2 — all tools work without selection. Emoji picker. Exercise CLEAR. Chat Namaste Nik welcome. Per-bubble COPY/REUSE/DOWNLOAD."
     },
     {
       "version": "1.2.1",
@@ -23,7 +28,7 @@
     {
       "version": "1.1.1",
       "date": "2026-05-02",
-      "notes": "Paragraph, Email, Translator, Exercise, Timezone modules. Worker fixed. Scroll fixed."
+      "notes": "Paragraph, Email, Translator, Exercise, Timezone. Worker fixed. Scroll fixed. Shared toolbar."
     }
   ]
 }
