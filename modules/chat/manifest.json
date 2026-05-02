@@ -1,0 +1,40 @@
+{
+  "id": "chat",
+  "name": "Chat",
+  "version": "1.0.0",
+  "description": "Conversational grammar tutor with bilingual modes, history, and an editor toolbar.",
+  "icon": "💬",
+  "storageKeys": [
+    "chat.history",
+    "chat.lang",
+    "chat.preferred"
+  ],
+  "promptKeys": [
+    "chat_default",
+    "chat_english_only",
+    "chat_hindi_only",
+    "quick_improve",
+    "quick_translate_en2hi",
+    "quick_translate_hi2en"
+  ],
+  "options": {
+    "historyMax": 50,
+    "languageModes": ["bilingual", "english", "hindi"],
+    "defaultLanguageMode": "bilingual",
+    "quickChips": [
+      { "label": "Check grammar",  "text": "Please check my grammar in this sentence: " },
+      { "label": "Tense rules",    "text": "Explain English tense rules with simple examples." },
+      { "label": "Common mistakes","text": "Tell me 5 common English mistakes Indians make." },
+      { "label": "Quiz",           "text": "Give me a short 5-question grammar quiz." },
+      { "label": "Articles",       "text": "When do I use a, an, and the?" }
+    ],
+    "toolbar": {
+      "format": ["bold", "heading", "highlight", "preview", "case", "dictionary", "duplicate"],
+      "extras": ["attach", "voice", "improve", "translate", "clear-input", "clear-history"]
+    },
+    "attachments": {
+      "accept": ".txt,.md,.json,.csv,image/*",
+      "maxSizeKb": 256
+    }
+  }
+}
