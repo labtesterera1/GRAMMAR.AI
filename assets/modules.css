@@ -131,3 +131,27 @@
 .send-out-btn:hover { color: var(--lime); background: var(--surface-2); }
 .send-out-btn:active { transform: scale(0.96); }
 .send-out-icn { font-size: 20px; line-height: 1; }
+
+/* ─── Emoji picker ─── */
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.emoji-btn {
+  font-size: 26px;
+  padding: 10px 4px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  text-align: center;
+  transition: all 0.12s var(--ease);
+  line-height: 1;
+}
+.emoji-btn:hover, .emoji-btn:active {
+  background: var(--surface-2);
+  border-color: var(--lime-dim);
+  transform: scale(1.18);
+}
+@media (min-width: 700px) {
+  .emoji-grid { grid-template-columns: repeat(8, 1fr); }
+}
