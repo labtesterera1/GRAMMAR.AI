@@ -1,10 +1,15 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
+    {
+      "version": "1.0.1",
+      "date": "2026-05-02",
+      "notes": "Default language is now EN. No-key flow opens a friendly setup sheet that takes you straight to Settings. Welcome card shows a SETUP button when no provider key is present."
+    },
     {
       "version": "1.0.0",
       "date": "2026-05-02",
