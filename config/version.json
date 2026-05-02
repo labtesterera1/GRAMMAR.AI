@@ -1,29 +1,29 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
     {
+      "version": "1.2.2",
+      "date": "2026-05-02",
+      "notes": "Toolbar v2: all tools work without text selection (auto-detect word at cursor). Emoji picker added (😊). Exercise CLEAR buttons on all 4 sub-tabs. Chat welcome updated to 'Namaste Nik!'. Chat per-bubble actions: COPY / REUSE / DOWNLOAD."
+    },
+    {
       "version": "1.2.1",
       "date": "2026-05-02",
-      "notes": "SEND OUT section (Share File + WhatsApp/Email/Print/Copy) added to Chat, Paragraph, Email, Translator, Exercise. Topbar updated to 'Grammar.AI by Nik'. Home footer removed. Attachment fixed on Android (file input now attached to document.body, no display:none)."
+      "notes": "SEND OUT on all output modules. Grammar.AI by Nik topbar. Home footer removed. Android attachment fixed."
     },
     {
       "version": "1.2.0",
       "date": "2026-05-02",
-      "notes": "Notes module with 6-digit master password. Install App in Settings. Export filenames use Module+Version+Date format."
+      "notes": "Notes module with 6-digit password. Install App in Settings."
     },
     {
       "version": "1.1.1",
       "date": "2026-05-02",
-      "notes": "4 new modules: Paragraph, Email, Translator, Exercise+Timezone. Worker contract fixed. Scroll fixed. Shared toolbar."
-    },
-    {
-      "version": "1.0.0",
-      "date": "2026-05-02",
-      "notes": "Initial SmartApp release."
+      "notes": "Paragraph, Email, Translator, Exercise, Timezone modules. Worker fixed. Scroll fixed."
     }
   ]
 }
