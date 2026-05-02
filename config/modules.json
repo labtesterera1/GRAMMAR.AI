@@ -57,7 +57,7 @@
       "name": "Notes",
       "tagline": "WRITE · VAULT · EXPORT",
       "icon": "📋",
-      "status": "soon",
+      "status": "ready",
       "order": 6,
       "showInNav": true
     },

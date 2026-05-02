@@ -1,29 +1,29 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "build": "2026.05.02",
   "channel": "stable",
   "history": [
     {
+      "version": "1.2.0",
+      "date": "2026-05-02",
+      "notes": "Notes module with 6-digit master password, 3 note types (Quick/Daily/Study), tags, AI tools (improve/summarise/translate/explain), full toolbar, export TXT/JSON. Install App button in Settings. Export filenames now use Module_v1.2.0_2026-05-02 format."
+    },
+    {
       "version": "1.1.1",
       "date": "2026-05-02",
-      "notes": "Major: 4 new modules (Paragraph, Email, Translator, Exercise with Tense/Flash/Vocab/Story sub-tabs, Timezone). Worker contract now matches NikGrammer-Agent — POST /api/chat with {messages,maxTokens}, GET /test endpoints. Scroll architecture rewritten — pages now scroll properly on mobile and desktop. Shared composer toolbar component (B/H/◐/👁/aA/📖/⧉ + 📎🎤✨🌐🗑▸) reused across all input modules."
+      "notes": "4 new modules: Paragraph, Email, Translator, Exercise (Tense/Flash/Vocab/Story), Timezone. Worker contract fixed. Scroll fixed. Shared toolbar component."
     },
     {
       "version": "1.1.0",
       "date": "2026-05-02",
-      "notes": "Responsive design — desktop side-rail, multi-column home, two-pane settings. Worker proxy restored with mode toggle. Persistent Storage API with live usage."
-    },
-    {
-      "version": "1.0.1",
-      "date": "2026-05-02",
-      "notes": "Default language is now EN. No-key flow opens a friendly setup sheet. Welcome card shows SETUP button when no provider key is present."
+      "notes": "Responsive design. Worker proxy restored. Persistent Storage API. Chat layout overhaul."
     },
     {
       "version": "1.0.0",
       "date": "2026-05-02",
-      "notes": "Initial SmartApp release. Modular shell + JSON config. Chat module live."
+      "notes": "Initial SmartApp release."
     }
   ]
 }
