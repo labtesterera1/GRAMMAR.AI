@@ -1,0 +1,47 @@
+<div class="page-inner">
+  <div class="kicker">
+    <span data-bind="moduleNum">MOD 02 / PARAGRAPH</span>
+    <span class="lime" data-bind="status">● READY</span>
+  </div>
+  <div class="headline">Paragraph</div>
+  <div class="subline">
+    <span>WRITE · CORRECT · IMPROVE</span>
+    <span data-bind="wordCount">0 WORDS</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="s-ttl"><span>YOUR PARAGRAPH</span></div>
+
+  <textarea
+    class="composer-input"
+    id="para-input"
+    placeholder="Paste or type your paragraph… or tap 🎤 to dictate."
+    rows="4"
+    aria-label="Paragraph"></textarea>
+  <div id="toolbar-mount"></div>
+
+  <div class="row gap-12 mt-12" style="flex-wrap:wrap;">
+    <select class="select" id="para-mode" style="flex:1;min-width:180px;"></select>
+    <button class="btn btn-primary" id="para-go" style="flex:1;min-width:140px;">▸ CORRECT NOW</button>
+    <button class="btn btn-rust" id="para-clear" style="min-width:90px;">CLEAR</button>
+  </div>
+
+  <div class="s-ttl"><span>CORRECTED VERSION</span><span class="num">OUTPUT</span></div>
+
+  <div class="frame subtle">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <div class="output-box placeholder" id="para-output">Corrected paragraph will appear here…</div>
+  </div>
+
+  <div class="row gap-12 mt-12">
+    <button class="btn flex-1" id="para-speak">🔊 SPEAK</button>
+    <button class="btn flex-1" id="para-copy">⧉ COPY</button>
+    <button class="btn flex-1" id="para-download">⬇ DOWNLOAD</button>
+  </div>
+</div>

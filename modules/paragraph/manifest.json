@@ -1,0 +1,17 @@
+{
+  "id": "paragraph",
+  "name": "Paragraph",
+  "version": "1.0.0",
+  "description": "Voice-input grammar correction with 5 rewrite modes and TTS playback.",
+  "icon": "✏️",
+  "options": {
+    "modes": [
+      { "key": "correct", "label": "Correct grammar only" },
+      { "key": "improve", "label": "Correct + improve style" },
+      { "key": "formal",  "label": "Make it formal" },
+      { "key": "simple",  "label": "Make it simpler" },
+      { "key": "explain", "label": "Correct + explain errors" }
+    ],
+    "defaultMode": "correct"
+  }
+}
