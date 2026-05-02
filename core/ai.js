@@ -1,9 +1,10 @@
 /* ────────────────────────────────────────────────────────────────
-   AI CLIENT · Worker proxy + direct provider calls
-   Mode:
-     'worker-first' → try Worker, fall back to direct keys
-     'worker-only'  → only Worker
-     'direct-only'  → only direct keys, ignore Worker
+   AI CLIENT · v1.1.1
+   Worker contract matches NikGrammer-Agent-main exactly:
+     POST <url>/api/chat  body: {messages, maxTokens}  → {text} or {error}
+     GET  <url>/test                                    → 200/non-200
+     GET  <url>/test/<provider>                         → 200/non-200
+   Direct fallback: groq → cerebras → gemini → mistral.
    ──────────────────────────────────────────────────────────────── */
 
 import { Storage } from './storage.js';
@@ -28,9 +29,12 @@ export function setKey(id, key) { Storage.set(`keys.${id}`, (key || '').trim());
 export function clearKey(id) { Storage.remove(`keys.${id}`); }
 export function hasAnyKey() { return _fallback.some(id => !!getKey(id)); }
 
-/* ─── Worker config ─── */
-export function getWorkerUrl() { return Storage.get('worker.url', '') || ''; }
-export function setWorkerUrl(u) { Storage.set('worker.url', (u || '').trim()); }
+/* ─── Worker ─── */
+export function getWorkerUrl() {
+  const u = Storage.get('worker.url', '') || '';
+  return u.replace(/\/$/, '');
+}
+export function setWorkerUrl(u) { Storage.set('worker.url', (u || '').trim().replace(/\/$/, '')); }
 export function clearWorkerUrl() { Storage.remove('worker.url'); }
 export function hasWorker() { return !!getWorkerUrl(); }
 
@@ -43,7 +47,6 @@ export function setMode(m) { if (MODES.includes(m)) Storage.set('ai.mode', m); }
 export function getPrimary() { return Storage.get('ai.primary', '') || ''; }
 export function setPrimary(id) { Storage.set('ai.primary', id || ''); }
 
-/** Resolve effective try-order: primary → fallback (skipping primary) */
 function resolveOrder() {
   const order = [];
   const prim = getPrimary();
@@ -52,29 +55,27 @@ function resolveOrder() {
   return order;
 }
 
-/* ─── Request builders ─── */
+/* ─── Timeout helper ─── */
+function timeoutSignal(ms) {
+  if (typeof AbortSignal?.timeout === 'function') return AbortSignal.timeout(ms);
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
+}
+
+/* ─── Direct provider request builders ─── */
 
 function buildDirect(provider, messages, opts) {
   const temperature = opts.temperature ?? 0.6;
-  const maxTokens   = opts.maxTokens   ?? 1024;
+  const maxTokens   = opts.maxTokens   ?? 1200;
 
   if (provider.format === 'openai') {
     return {
       url: provider.endpoint,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${opts.key}`
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        stream: false
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${opts.key}` },
+      body: JSON.stringify({ model: provider.model, messages, temperature, max_tokens: maxTokens, stream: false })
     };
   }
-
   if (provider.format === 'gemini') {
     const url = provider.endpoint.replace('{model}', provider.model) + `?key=${encodeURIComponent(opts.key)}`;
     const sys = messages.find(m => m.role === 'system');
@@ -82,21 +83,15 @@ function buildDirect(provider, messages, opts) {
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
     }));
-    const body = {
-      contents: turns,
-      generationConfig: { temperature, maxOutputTokens: maxTokens }
-    };
+    const body = { contents: turns, generationConfig: { temperature, maxOutputTokens: maxTokens } };
     if (sys) body.systemInstruction = { parts: [{ text: sys.content }] };
     return { url, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
   }
-
   throw new Error(`Unknown provider format: ${provider.format}`);
 }
 
 function parseDirect(provider, json) {
-  if (provider.format === 'openai') {
-    return json?.choices?.[0]?.message?.content?.trim() || '';
-  }
+  if (provider.format === 'openai') return json?.choices?.[0]?.message?.content?.trim() || '';
   if (provider.format === 'gemini') {
     const parts = json?.candidates?.[0]?.content?.parts;
     return parts ? parts.map(p => p.text || '').join('').trim() : '';
@@ -104,62 +99,40 @@ function parseDirect(provider, json) {
   return '';
 }
 
-/** Build the Worker request — Worker accepts a flexible payload. */
-function buildWorker(messages, opts) {
-  const url = getWorkerUrl();
-  if (!url) throw new Error('Worker URL not set');
-  return {
-    url: url.replace(/\/$/, '') + (opts.path || '/api/chat'),
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages,
-      provider: opts.preferred || getPrimary() || _fallback[0],
-      temperature: opts.temperature ?? 0.6,
-      maxTokens: opts.maxTokens ?? 1024
-    })
-  };
-}
-
-/** Worker response can be either OpenAI-shaped or {text:...}. */
-function parseWorker(json) {
-  if (!json) return '';
-  if (typeof json === 'string') return json.trim();
-  if (json.text) return String(json.text).trim();
-  if (json.choices?.[0]?.message?.content) return json.choices[0].message.content.trim();
-  if (json.candidates?.[0]?.content?.parts) {
-    return json.candidates[0].content.parts.map(p => p.text || '').join('').trim();
-  }
-  return '';
-}
-
-/* ─── Public API ─── */
+/* ─── Public chat ─── */
 
 /**
  * @returns {Promise<{text:string, route:'worker'|string}>}
  */
 export async function chat(messages, opts = {}) {
   if (!_providers) await loadProviders();
-
   const mode = getMode();
   const errors = [];
+  const maxTokens = opts.maxTokens ?? 1200;
 
-  // Try Worker first if applicable
+  // ── Worker route ──
   if ((mode === 'worker-first' || mode === 'worker-only') && hasWorker()) {
     try {
-      const req = buildWorker(messages, opts);
-      const r = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body, signal: opts.signal });
-      if (r.ok) {
-        const j = await r.json();
-        const text = parseWorker(j);
-        if (text) return { text, route: 'worker' };
+      const url = getWorkerUrl() + '/api/chat';
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, maxTokens }),
+        signal: opts.signal || timeoutSignal(45000)
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        errors.push(`worker: ${data.error || 'HTTP ' + r.status}`);
+      } else if (!data.text) {
         errors.push('worker: empty response');
       } else {
-        const t = await r.text().catch(() => '');
-        errors.push(`worker: HTTP ${r.status} ${t.slice(0,120)}`);
+        return { text: String(data.text).trim(), route: 'worker' };
       }
     } catch (e) {
       if (e.name === 'AbortError') throw e;
-      errors.push(`worker: ${e.message}`);
+      if (e.message.includes('Failed to fetch')) errors.push('worker: cannot reach (check URL/CORS)');
+      else if (e.name === 'TimeoutError') errors.push('worker: timeout 45s');
+      else errors.push(`worker: ${e.message}`);
     }
     if (mode === 'worker-only') {
       const err = new Error('Worker call failed (worker-only mode)');
@@ -168,7 +141,7 @@ export async function chat(messages, opts = {}) {
     }
   }
 
-  // Direct provider calls
+  // ── Direct provider route ──
   if (mode !== 'worker-only') {
     const order = opts.preferred && _providers[opts.preferred]
       ? [opts.preferred, ...resolveOrder().filter(id => id !== opts.preferred)]
@@ -179,8 +152,11 @@ export async function chat(messages, opts = {}) {
       const key  = getKey(id);
       if (!key) { errors.push(`${id}: no key`); continue; }
       try {
-        const req = buildDirect(prov, messages, { ...opts, key });
-        const r = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body, signal: opts.signal });
+        const req = buildDirect(prov, messages, { ...opts, key, maxTokens });
+        const r = await fetch(req.url, {
+          method: 'POST', headers: req.headers, body: req.body,
+          signal: opts.signal || timeoutSignal(45000)
+        });
         if (!r.ok) {
           const t = await r.text().catch(() => '');
           errors.push(`${id}: HTTP ${r.status} ${t.slice(0,120)}`);
@@ -209,13 +185,24 @@ export async function testProvider(id) {
   const prov = _providers[id];
   const key  = getKey(id);
   if (!prov) return { ok: false, msg: 'Unknown provider' };
-  if (!key)  return { ok: false, msg: 'No API key set' };
+
+  // If Worker is set, use Worker's /test/<id> endpoint (matches old app)
+  if (hasWorker()) {
+    try {
+      const r = await fetch(getWorkerUrl() + '/test/' + id, { signal: timeoutSignal(15000) });
+      return r.ok ? { ok: true, msg: 'Connected (via Worker)' } : { ok: false, msg: `HTTP ${r.status}` };
+    } catch (e) {
+      // fall through to direct test
+    }
+  }
+
+  if (!key) return { ok: false, msg: 'No API key set' };
   try {
     const req = buildDirect(prov, [
       { role: 'system', content: 'Reply with one word: OK' },
       { role: 'user',   content: 'ping' }
     ], { key, temperature: 0, maxTokens: 8 });
-    const r = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body });
+    const r = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body, signal: timeoutSignal(15000) });
     if (!r.ok) {
       const t = await r.text().catch(() => '');
       return { ok: false, msg: `HTTP ${r.status} ${t.slice(0,80)}` };
@@ -231,31 +218,20 @@ export async function testProvider(id) {
 export async function testWorker() {
   if (!hasWorker()) return { ok: false, msg: 'No Worker URL' };
   try {
-    const req = buildWorker(
-      [{ role: 'system', content: 'Reply OK' }, { role: 'user', content: 'ping' }],
-      { temperature: 0, maxTokens: 8 }
-    );
-    const r = await fetch(req.url, { method: 'POST', headers: req.headers, body: req.body });
-    if (!r.ok) {
-      const t = await r.text().catch(() => '');
-      return { ok: false, msg: `HTTP ${r.status} ${t.slice(0,80)}` };
-    }
-    const j = await r.json();
-    const text = parseWorker(j);
-    return text ? { ok: true, msg: 'Connected' } : { ok: false, msg: 'Empty response' };
+    const r = await fetch(getWorkerUrl() + '/test', { signal: timeoutSignal(10000) });
+    return r.ok ? { ok: true, msg: 'Connected' } : { ok: false, msg: `HTTP ${r.status}` };
   } catch (e) {
     return { ok: false, msg: e.message };
   }
 }
 
-/* ─── Convenience aggregate ─── */
+/* ─── Aggregate ─── */
 export const AI = {
   chat, testProvider, testWorker, loadProviders,
   getKey, setKey, clearKey, hasAnyKey,
   getProviders, getFallbackOrder,
   getWorkerUrl, setWorkerUrl, clearWorkerUrl, hasWorker,
   getMode, setMode, getPrimary, setPrimary, MODES,
-  /** Is *any* AI route available? */
   hasAnyRoute() {
     const m = getMode();
     if (m === 'worker-only')  return hasWorker();
