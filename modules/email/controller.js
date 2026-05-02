@@ -92,6 +92,15 @@ export default async function init({ root, module }) {
     textarea: elBody,
     voiceLang: 'en-IN',
     enterToSend: false,
+    attachAccept: '.txt,.md,.json,.csv',
+    onAttach: async (file) => {
+      const text = await file.text().catch(() => '');
+      elBody.value = (elBody.value ? elBody.value + '\n\n' : '') + text;
+      state.body = elBody.value;
+      SCOPE.set('body', state.body);
+      updateWC();
+      toast(`Attached: ${file.name}`, 'success');
+    },
     onImprove: () => quickAction('quick_improve', 'Improving…'),
     onTranslate: () => quickTranslate(),
     onSend: () => analyze()
@@ -103,22 +112,38 @@ export default async function init({ root, module }) {
   elGo.addEventListener('click', analyze);
   elClear.addEventListener('click', () => {
     if (!confirm('Clear email and all results?')) return;
-    elSubject.value = '';
-    elBody.value = '';
-    state.subject = '';
-    state.body = '';
-    state.last = null;
-    SCOPE.set('subject', '');
-    SCOPE.set('body', '');
-    SCOPE.remove('last');
+    elSubject.value = ''; elBody.value = '';
+    state.subject = ''; state.body = ''; state.last = null;
+    SCOPE.set('subject', ''); SCOPE.set('body', ''); SCOPE.remove('last');
     elResults.classList.add('hide');
     updateWC();
   });
 
+  // SPEAK per version
+  function speak(text) {
+    if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN'; u.rate = 0.95;
+    speechSynthesis.speak(u);
+    toast('Speaking…');
+  }
+  $('#speak-corrected', root)?.addEventListener('click', () => {
+    if (!state.last?.corrected) { toast('Run analyze first'); return; }
+    speak(state.last.corrected);
+  });
+  $('#speak-improved', root)?.addEventListener('click', () => {
+    if (!state.last?.improved) { toast('Run analyze first'); return; }
+    speak(state.last.improved);
+  });
+  $('#speak-polished', root)?.addEventListener('click', () => {
+    if (!state.last?.polished) { toast('Run analyze first'); return; }
+    speak(state.last.polished);
+  });
+
   // Copy / download per version
   $$('[data-copy]', root).forEach(b => b.addEventListener('click', () => {
-    const k = b.dataset.copy;
-    const v = state.last?.[k];
+    const v = state.last?.[b.dataset.copy];
     if (!v) { toast('Run analyze first'); return; }
     copyToClipboard(v);
   }));
@@ -126,9 +151,10 @@ export default async function init({ root, module }) {
     const k = b.dataset.dl;
     const v = state.last?.[k];
     if (!v) { toast('Run analyze first'); return; }
-    const subj = (state.subject || 'email').replace(/[^a-z0-9]+/gi, '-').slice(0, 30);
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    downloadFile(`email-${k}-${subj}-${ts}.txt`, `Subject: ${state.subject}\n\n${v}`, 'text/plain');
+    const ver = '1.2.3';
+    const d   = new Date().toISOString().slice(0,10);
+    const subj = (state.subject || 'email').replace(/[^a-z0-9]+/gi,'-').slice(0,20);
+    downloadFile(`Grammar.AI_v${ver}_Email-${k}-${subj}_${d}.txt`, `Subject: ${state.subject || ''}\n\n${v}`, 'text/plain');
   }));
 
   function showNoRouteHelp() {
