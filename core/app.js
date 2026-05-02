@@ -1,9 +1,10 @@
 /* ────────────────────────────────────────────────────────────────
-   APP · v1.1.0 · orchestrator
+   APP · v1.2.0 · orchestrator
    - Boots config, providers, modules
    - Builds side-rail (desktop) + bottom nav (mobile)
    - Routes to home / settings / module/<id>
    - Requests persistent storage on first boot
+   - Captures PWA install prompt for Settings
    - Keyboard shortcuts: '/' focus, 'Esc' close sheets, 'g h', 'g s'
    ──────────────────────────────────────────────────────────────── */
 
@@ -19,6 +20,21 @@ const $$$ = (sel) => document.querySelectorAll(sel);
 
 let _versionInfo = null;
 const _moduleHosts = new Map();
+
+/* ─── PWA install prompt ─── */
+let _installPrompt = null;
+export function getInstallPrompt() { return _installPrompt; }
+export function clearInstallPrompt() { _installPrompt = null; }
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _installPrompt = e;
+  // Refresh settings if it's open so button appears
+  const settingsPage = document.getElementById('page-settings');
+  if (settingsPage?.classList.contains('active')) {
+    renderSettings(settingsPage);
+  }
+});
 
 async function boot() {
   // Load configs in parallel
