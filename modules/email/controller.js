@@ -2,7 +2,7 @@
    EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -36,10 +36,24 @@ export default async function init({ root, module }) {
   const elCorrected = $('#email-corrected', root);
   const elImproved  = $('#email-improved', root);
   const elPolished  = $('#email-polished', root);
+  const elSendOut = $('#email-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elWC      = root.querySelector('[data-bind="wordCount"]');
+
+  function showSendOut() {
+    if (!state.last?.polished || !elSendOut) return;
+    elSendOut.classList.remove('hide');
+    const v = '1.2.1';
+    const d = new Date().toISOString().slice(0,10);
+    const subj = (state.subject || 'email').replace(/[^a-z0-9]+/gi,'-').slice(0,20);
+    mountSendOut(
+      elSendOut,
+      () => `Subject: ${state.subject || ''}\n\n${state.last?.polished || ''}`,
+      () => `Grammar.AI_v${v}_Email-${subj}_${d}`
+    );
+  }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
@@ -66,6 +80,7 @@ export default async function init({ root, module }) {
     elImproved.textContent  = state.last.improved  || '';
     elPolished.textContent  = state.last.polished  || '';
     elResults.classList.remove('hide');
+    showSendOut();
   }
 
   refreshStatus();
@@ -180,6 +195,7 @@ Return ONLY this JSON:
       elImproved.textContent  = state.last.improved;
       elPolished.textContent  = state.last.polished;
       elResults.classList.remove('hide');
+      showSendOut();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
       toast('Failed: ' + (e.details?.[0] || e.message), 'error');
