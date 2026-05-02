@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────
-   HOME · module cards & status strip
+   HOME · responsive module grid
    ──────────────────────────────────────────────────────────────── */
 
 .home { padding-bottom: 32px; }
@@ -15,28 +15,28 @@
 }
 .status-cell {
   background: var(--surface);
-  padding: 12px 14px;
+  padding: 14px 16px;
   text-align: left;
 }
 .status-lbl {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;
   color: var(--muted);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .status-val {
   font-family: var(--serif);
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--text);
 }
 .status-val.muted { color: var(--muted); }
 .status-val.lime { color: var(--lime); }
 .status-sub {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;
   color: var(--dim);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -45,8 +45,8 @@
 
 /* Module grid */
 .mod-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -59,10 +59,12 @@
   width: 100%;
   display: block;
   transition: all 0.18s var(--ease);
+  min-height: 130px;
 }
 .mod-card:not(:disabled):hover {
   background: var(--surface-2);
   border-color: var(--lime-dim);
+  transform: translateY(-1px);
 }
 .mod-card:not(:disabled):active { transform: scale(0.99); }
 .mod-card:disabled { cursor: not-allowed; opacity: 0.78; }
@@ -101,7 +103,6 @@
 }
 .mod-card:not(:disabled):hover .mod-arrow { color: var(--lime); }
 
-/* Soft glow on the small badge dot when ready */
 .mod-card[data-status="ready"] .badge-ready::before {
   animation: pulse 2.4s var(--ease) infinite;
 }
@@ -111,9 +112,35 @@
 }
 
 /* Footer */
-.footer-blk { margin-top: 24px; }
+.footer-blk { margin-top: 28px; }
 .footer-row {
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ──────────────────────────────────────────────────────────────── */
+
+@media (min-width: 700px) {
+  .mod-grid { grid-template-columns: repeat(2, 1fr); }
+  .status-cell { padding: 16px 20px; }
+  .status-val { font-size: 36px; }
+  .mod-card { min-height: 150px; padding: 22px 24px 20px; }
+  .mod-card-title { font-size: 34px; }
+}
+
+@media (min-width: 1024px) {
+  .mod-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mod-card { min-height: 180px; padding: 26px 28px 22px; }
+  .mod-card-title { font-size: 38px; margin-bottom: 8px; }
+  .status-val { font-size: 42px; }
+}
+
+@media (min-width: 1440px) {
+  .mod-card { min-height: 200px; }
+  .mod-card-title { font-size: 44px; }
 }
