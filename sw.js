@@ -7,7 +7,7 @@
    - API calls: never cached (handled by browser, sent direct)
    ──────────────────────────────────────────────────────────────── */
 
-const VERSION = 'gai-v1.1.1';
+const VERSION = 'gai-v1.2.0';
 const SHELL_CACHE  = `${VERSION}-shell`;
 const CONFIG_CACHE = `${VERSION}-config`;
 
@@ -44,6 +44,10 @@ const SHELL_URLS = [
   'modules/exercise/view.html',
   'modules/exercise/controller.js',
   'modules/exercise/manifest.json',
+  'modules/notes/view.html',
+  'modules/notes/controller.js',
+  'modules/notes/manifest.json',
+  'modules/notes/notes.css',
   'modules/timezone/view.html',
   'modules/timezone/controller.js',
   'modules/timezone/manifest.json',
