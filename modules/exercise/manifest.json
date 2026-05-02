@@ -1,0 +1,35 @@
+{
+  "id": "exercise",
+  "name": "Exercise",
+  "version": "1.0.0",
+  "description": "Practice with tense exercises, flashcards, vocab, and stories.",
+  "icon": "🎯",
+  "options": {
+    "subTabs": [
+      { "key": "tense",  "label": "Tense" },
+      { "key": "flash",  "label": "Flash" },
+      { "key": "vocab",  "label": "Vocab" },
+      { "key": "story",  "label": "Story" }
+    ],
+    "defaultTab": "tense",
+    "tenses": [
+      "Simple Present", "Present Continuous", "Present Perfect", "Present Perfect Continuous",
+      "Simple Past", "Past Continuous", "Past Perfect", "Past Perfect Continuous",
+      "Simple Future", "Future Continuous", "Future Perfect", "Future Perfect Continuous",
+      "Prepositions of Place", "Prepositions of Time", "Prepositions of Movement"
+    ],
+    "flashcardTopics": [
+      "Simple Present", "Simple Past", "Present Perfect", "Future Simple",
+      "Prepositions", "Articles", "Vocabulary"
+    ],
+    "vocabLevels": [
+      { "key": "beginner",     "label": "Beginner" },
+      { "key": "intermediate", "label": "Intermediate" },
+      { "key": "advanced",     "label": "Advanced" }
+    ],
+    "storyTopics": [
+      "daily life", "workplace", "travel", "motivation",
+      "moral", "technology", "health"
+    ]
+  }
+}

@@ -1,0 +1,142 @@
+<div class="page-inner">
+  <div class="kicker">
+    <span data-bind="moduleNum">MOD 05 / EXERCISE</span>
+    <span class="lime" data-bind="status">● READY</span>
+  </div>
+  <div class="headline">Exercise</div>
+  <div class="subline">
+    <span>TENSE · FLASH · VOCAB · STORY</span>
+    <span data-bind="subInfo">SELECT</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i</i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <!-- Sub-tabs -->
+  <div class="lang-chips" id="ex-tabs"></div>
+
+  <!-- ─── TENSE SUB-TAB ─── -->
+  <div class="ex-sub" data-sub="tense">
+    <div class="s-ttl"><span>SELECT TENSE</span><span class="num">15 OPTIONS</span></div>
+    <div class="tense-grid" id="tense-grid"></div>
+    <div class="row gap-12 mt-12">
+      <button class="btn btn-primary flex-1" id="tense-go" disabled>▸ GENERATE 15 Qs</button>
+      <button class="btn" id="tense-toggle-ans" disabled>👁 ANSWERS</button>
+      <button class="btn" id="tense-download" disabled>⬇</button>
+    </div>
+
+    <div id="tense-questions" class="hide">
+      <div class="s-ttl"><span>QUESTIONS</span><span id="tense-q-info" class="num">15</span></div>
+      <div class="frame subtle">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="output-box" id="tense-q-list"></div>
+      </div>
+    </div>
+
+    <div id="tense-answers" class="hide">
+      <div class="s-ttl"><span>ANSWERS</span><span class="num">EXPLAINED</span></div>
+      <div class="frame subtle">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="output-box" id="tense-a-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FLASHCARDS SUB-TAB ─── -->
+  <div class="ex-sub hide" data-sub="flash">
+    <div class="s-ttl"><span>FLASHCARDS</span><span class="num">10 PER ROUND</span></div>
+    <div class="row gap-12">
+      <select class="select" id="flash-topic" style="flex:1;"></select>
+      <button class="btn btn-primary" id="flash-go">▸ GENERATE</button>
+    </div>
+
+    <div id="flash-area" class="hide mt-12">
+      <div class="row between mt-8" style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">
+        <span id="flash-counter">CARD 1 / 10</span>
+        <span class="lime" id="flash-score">✓ 0</span>
+      </div>
+      <div class="flash-progress mt-8"><div class="flash-bar" id="flash-bar"></div></div>
+
+      <div class="frame subtle flash-card mt-12" id="flash-card">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="flash-hint mono">TAP TO FLIP</div>
+        <div class="flash-q serif" id="flash-q"></div>
+        <div class="flash-back hide" id="flash-back">
+          <div class="flash-hint mono">ANSWER</div>
+          <div class="flash-a serif" id="flash-a"></div>
+          <div class="flash-exp" id="flash-exp"></div>
+        </div>
+      </div>
+
+      <div class="row gap-12 mt-12 hide" id="flash-mark-row">
+        <button class="btn btn-rust flex-1" id="flash-no">✗ DON'T KNOW</button>
+        <button class="btn btn-primary flex-1" id="flash-yes">✓ KNOW IT</button>
+      </div>
+
+      <div class="row gap-12 mt-12">
+        <button class="btn flex-1" id="flash-prev">← PREV</button>
+        <button class="btn" id="flash-shuffle">🔀</button>
+        <button class="btn flex-1" id="flash-next">NEXT →</button>
+      </div>
+
+      <div class="row gap-12 mt-12">
+        <button class="btn flex-1" id="flash-download">⬇ DOWNLOAD</button>
+      </div>
+
+      <div id="flash-summary" class="frame subtle mt-12 hide" style="padding:16px;text-align:center;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="serif" style="font-size:24px;">Round complete</div>
+        <div class="mono mt-8" id="flash-sum-text"></div>
+        <button class="btn btn-primary mt-12" id="flash-restart">↺ RESTART ROUND</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── VOCAB SUB-TAB ─── -->
+  <div class="ex-sub hide" data-sub="vocab">
+    <div class="s-ttl"><span>VOCABULARY</span><span class="num">10 WORDS</span></div>
+    <div class="row gap-12">
+      <select class="select" id="vocab-level" style="flex:1;"></select>
+      <button class="btn btn-primary" id="vocab-go">▸ GENERATE</button>
+    </div>
+    <div class="row gap-12 mt-8">
+      <button class="btn flex-1" id="vocab-download" disabled>⬇ DOWNLOAD</button>
+    </div>
+    <div id="vocab-list" class="col mt-12"></div>
+  </div>
+
+  <!-- ─── STORY SUB-TAB ─── -->
+  <div class="ex-sub hide" data-sub="story">
+    <div class="s-ttl"><span>STORY GENERATOR</span><span class="num">200-280 WORDS</span></div>
+    <div class="row gap-12">
+      <select class="select" id="story-topic" style="flex:1;"></select>
+      <button class="btn btn-primary" id="story-go">▸ NEW STORY</button>
+    </div>
+    <div class="row gap-12 mt-8">
+      <button class="btn flex-1" id="story-download" disabled>⬇ DOWNLOAD</button>
+      <button class="btn flex-1" id="story-copy" disabled>⧉ COPY</button>
+    </div>
+
+    <div id="story-card" class="hide mt-12">
+      <div class="frame subtle" style="padding:14px 16px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="serif" id="story-title" style="font-size:24px;line-height:1.2;"></div>
+        <div class="mono mt-8" id="story-meta" style="font-size:10px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;"></div>
+        <div class="ticks mt-8"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="output-box" id="story-body" style="border:none;padding:0;background:transparent;"></div>
+      </div>
+      <div class="frame subtle mt-12" style="padding:14px 16px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono lime" style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;">GRAMMAR FOCUS</div>
+        <div class="output-box" id="story-grammar" style="border:none;padding:6px 0 0;background:transparent;"></div>
+        <div class="mono lime mt-8" style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;">LESSON</div>
+        <div class="output-box" id="story-lesson" style="border:none;padding:6px 0 0;background:transparent;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
