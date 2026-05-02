@@ -1,7 +1,7 @@
 {
   "id": "chat",
   "name": "Chat",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Conversational grammar tutor with bilingual modes, history, and an editor toolbar.",
   "icon": "💬",
   "storageKeys": [

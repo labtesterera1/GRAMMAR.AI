@@ -1,6 +1,6 @@
 <div class="chat-shell">
 
-  <!-- Header zone -->
+  <!-- Header zone (scrolls with page on mobile) -->
   <div class="chat-head">
     <div class="page-inner">
       <div class="kicker">
@@ -9,7 +9,7 @@
       </div>
       <div class="headline">Chat</div>
       <div class="subline">
-        <span data-bind="modelLine">MULTI-AI · BILINGUAL</span>
+        <span data-bind="modelLine">DIRECT · ENGLISH</span>
         <span data-bind="historyLine">HISTORY 0/50</span>
       </div>
       <div class="ticks">
@@ -33,14 +33,12 @@
     </div>
   </div>
 
-  <!-- Message stream (scrolls independently) -->
-  <div class="chat-stream-wrap">
-    <div class="page-inner chat-stream-inner">
-      <div class="msg-stream" id="msg-stream" aria-live="polite"></div>
-    </div>
+  <!-- Stream zone -->
+  <div class="page-inner chat-stream-inner">
+    <div class="msg-stream" id="msg-stream" aria-live="polite"></div>
   </div>
 
-  <!-- Composer zone (separate, anchored at bottom of chat) -->
+  <!-- Composer (toolbar will be injected by controller) -->
   <div class="chat-composer">
     <div class="page-inner">
       <div class="attach-bar" id="attach-bar"></div>
@@ -50,28 +48,7 @@
         placeholder="Ask a grammar question…"
         rows="1"
         aria-label="Message"></textarea>
-
-      <!-- Format toolbar: B / H / ◐ / 👁 / aA / 📖 / ⧉ -->
-      <div class="toolbar" role="toolbar" aria-label="Format">
-        <button class="toolbar-btn" data-tool="bold"      title="Bold (**text**)"><b>B</b></button>
-        <button class="toolbar-btn" data-tool="heading"   title="Heading">H</button>
-        <button class="toolbar-btn" data-tool="highlight" title="Highlight">◐</button>
-        <button class="toolbar-btn" data-tool="preview"   title="Preview formatted">👁</button>
-        <button class="toolbar-btn" data-tool="case"      title="Toggle case">aA</button>
-        <button class="toolbar-btn" data-tool="dictionary" title="Dictionary lookup">📖</button>
-        <button class="toolbar-btn" data-tool="duplicate" title="Duplicate line">⧉</button>
-      </div>
-      <!-- Action toolbar: 📎 🎤 ✨ 🌐 🗑 ▸ -->
-      <div class="toolbar toolbar-2" role="toolbar" aria-label="Actions">
-        <button class="toolbar-btn" data-tool="attach"    title="Attach file">📎</button>
-        <button class="toolbar-btn" data-tool="voice"     title="Voice input">🎤</button>
-        <button class="toolbar-btn" data-tool="improve"   title="AI improve grammar">✨</button>
-        <button class="toolbar-btn" data-tool="translate" title="Translate EN ↔ HI">🌐</button>
-        <button class="toolbar-btn danger" data-tool="clear-input" title="Clear input">🗑</button>
-        <button class="toolbar-btn send-btn" data-tool="send" title="Send (Enter)">▸</button>
-      </div>
+      <div id="toolbar-mount"></div>
     </div>
   </div>
-
-  <input type="file" id="file-input" hidden />
 </div>
