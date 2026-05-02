@@ -100,3 +100,34 @@
   .flash-card { min-height: 260px; padding: 32px 28px; }
   .flash-q, .flash-a { font-size: 32px; }
 }
+
+/* ─── SEND OUT ─── */
+.send-out-box {
+  padding: 14px 16px 16px;
+}
+.send-out-quick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 0.5px solid var(--border-2);
+}
+.send-out-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-right: 0.5px solid var(--border);
+  background: var(--surface);
+  transition: all 0.15s var(--ease);
+}
+.send-out-btn:last-child { border-right: none; }
+.send-out-btn:hover { color: var(--lime); background: var(--surface-2); }
+.send-out-btn:active { transform: scale(0.96); }
+.send-out-icn { font-size: 20px; line-height: 1; }

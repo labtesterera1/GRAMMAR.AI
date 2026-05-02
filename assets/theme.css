@@ -109,6 +109,13 @@ input, textarea, select { background: transparent; border: none; outline: none; 
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+.topbar-brand .by-nik {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--lime);
+  letter-spacing: 0.08em;
+  margin-left: 2px;
+}
 .topbar-route {
   font-family: var(--mono);
   font-size: 10px;
