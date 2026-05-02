@@ -472,7 +472,15 @@ export default async function init({ root, module }) {
           textarea: edContent,
           voiceLang: 'en-IN',
           enterToSend: false,
-          onImprove: () => runAiAction('improve', edContent, edAiResult, edAiText, edAiLabel),
+          attachAccept: '.txt,.md,.json,.csv',
+          onAttach: async (file) => {
+            const text = await file.text().catch(() => '');
+            const cur = edContent.value;
+            edContent.value = cur + (cur ? '\n\n' : '') + text;
+            updateWC?.();
+            toast(`Attached: ${file.name}`, 'success');
+          },
+          onImprove:   () => runAiAction('improve',   edContent, edAiResult, edAiText, edAiLabel),
           onTranslate: () => runAiAction('translate', edContent, edAiResult, edAiText, edAiLabel)
         });
       }
