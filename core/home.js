@@ -58,14 +58,6 @@ export function renderHome(host) {
       <div class="mod-grid">
         ${mods.map(renderCard).join('')}
       </div>
-
-      <div class="footer-blk">
-        <div class="ticks">${'<i></i>'.repeat(48)}</div>
-        <div class="footer-row">
-          <span class="mono dim tu" style="font-size:9px;">BUILD ${esc(_versionInfo?.build || '—')}</span>
-          <span class="mono dim tu" style="font-size:9px;">${esc((_versionInfo?.channel || 'stable').toUpperCase())} · LOCAL</span>
-        </div>
-      </div>
     </div>
   `;
 

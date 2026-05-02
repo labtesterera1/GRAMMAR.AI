@@ -221,14 +221,17 @@ export function mountToolbar(root, cfg) {
     if (fileInput) return fileInput;
     fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.style.display = 'none';
+    // ANDROID FIX: display:none blocks click on Android Chrome.
+    // Use opacity:0 + fixed position + zero size attached to body instead.
+    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
     if (cfg.attachAccept) fileInput.accept = cfg.attachAccept;
     fileInput.addEventListener('change', () => {
       const f = fileInput.files?.[0];
       fileInput.value = '';
       if (f && cfg.onAttach) cfg.onAttach(f);
     });
-    root.appendChild(fileInput);
+    // Attach to body so Android Chrome allows programmatic click
+    document.body.appendChild(fileInput);
     return fileInput;
   }
 
