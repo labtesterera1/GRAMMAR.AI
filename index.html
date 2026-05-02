@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#0c0b09" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Grammar.AI · SmartApp · Bilingual grammar tutor" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Grammar.AI</title>
+
+  <!-- Theme tokens & shared layouts (load synchronously so first paint isn't FOUC) -->
+  <link rel="stylesheet" href="assets/theme.css" />
+  <link rel="stylesheet" href="assets/home.css" />
+  <link rel="stylesheet" href="assets/settings.css" />
+  <link rel="stylesheet" href="modules/chat/chat.css" />
+</head>
+<body>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="name" id="brand-name">Grammar.AI</span>
+      <span class="ver" id="brand-ver">v1.0.0</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" id="nav-home" title="Home" aria-label="Home">⌂</button>
+      <button class="topbar-btn" id="nav-settings" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- App body — pages get appended here by app.js -->
+  <main class="app" id="app"></main>
+
+  <!-- Bottom nav -->
+  <nav class="bnav" aria-label="Modules">
+    <div class="bnav-inner" id="bnav-inner"></div>
+  </nav>
+
+  <!-- ES module entry -->
+  <script type="module" src="core/app.js"></script>
+</body>
+</html>
