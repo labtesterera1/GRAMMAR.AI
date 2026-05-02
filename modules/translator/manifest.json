@@ -1,0 +1,32 @@
+{
+  "id": "translator",
+  "name": "Translator",
+  "version": "1.0.0",
+  "description": "Bilingual translation EN↔HI with multiple modes and history.",
+  "icon": "🔄",
+  "options": {
+    "directions": [
+      {
+        "key": "en2hi",
+        "label": "English → Hindi",
+        "modes": [
+          { "key": "simple_hindi", "label": "Simple Hindi" },
+          { "key": "bilingual",    "label": "Hindi + English summary" },
+          { "key": "bullet",       "label": "Hindi bullet points" }
+        ],
+        "default": "simple_hindi"
+      },
+      {
+        "key": "hi2en",
+        "label": "Hindi → English",
+        "modes": [
+          { "key": "simple",  "label": "Simple English" },
+          { "key": "formal",  "label": "Formal English" },
+          { "key": "natural", "label": "Natural conversational" }
+        ],
+        "default": "simple"
+      }
+    ],
+    "historyMax": 20
+  }
+}

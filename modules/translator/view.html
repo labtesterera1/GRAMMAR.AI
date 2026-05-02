@@ -1,0 +1,44 @@
+<div class="page-inner">
+  <div class="kicker">
+    <span data-bind="moduleNum">MOD 04 / TRANSLATOR</span>
+    <span class="lime" data-bind="status">● READY</span>
+  </div>
+  <div class="headline">Translator</div>
+  <div class="subline">
+    <span>EN · HI · CONVERT</span>
+    <span data-bind="historyLine">HISTORY 0/20</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="lang-chips" id="dir-chips"></div>
+
+  <div class="s-ttl"><span>MODE</span></div>
+  <select class="select" id="tr-mode"></select>
+
+  <div class="s-ttl"><span>INPUT</span></div>
+  <textarea class="composer-input" id="tr-input" placeholder="Type text to translate…" rows="4" aria-label="Translate input"></textarea>
+  <div id="toolbar-mount"></div>
+
+  <div class="row gap-12 mt-12">
+    <button class="btn btn-primary flex-1" id="tr-go">▸ TRANSLATE</button>
+    <button class="btn btn-rust" id="tr-clear">CLEAR</button>
+  </div>
+
+  <div class="s-ttl"><span>OUTPUT</span></div>
+  <div class="frame subtle">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <div class="output-box placeholder" id="tr-output">Translation will appear here…</div>
+  </div>
+
+  <div class="row gap-12 mt-12">
+    <button class="btn flex-1" id="tr-copy">⧉ COPY</button>
+    <button class="btn flex-1" id="tr-download">⬇ DOWNLOAD</button>
+    <button class="btn flex-1" id="tr-history">📚 HISTORY</button>
+  </div>
+</div>
