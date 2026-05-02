@@ -7,7 +7,7 @@
    - API calls: never cached (handled by browser, sent direct)
    ──────────────────────────────────────────────────────────────── */
 
-const VERSION = 'gai-v1.0.1';
+const VERSION = 'gai-v1.1.0';
 const SHELL_CACHE  = `${VERSION}-shell`;
 const CONFIG_CACHE = `${VERSION}-config`;
 

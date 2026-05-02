@@ -12,7 +12,6 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>Grammar.AI</title>
 
-  <!-- Theme tokens & shared layouts (load synchronously so first paint isn't FOUC) -->
   <link rel="stylesheet" href="assets/theme.css" />
   <link rel="stylesheet" href="assets/home.css" />
   <link rel="stylesheet" href="assets/settings.css" />
@@ -20,11 +19,12 @@
 </head>
 <body>
 
-  <!-- Top bar -->
+  <!-- Topbar (mobile + desktop) -->
   <header class="topbar">
     <div class="topbar-brand">
       <span class="name" id="brand-name">Grammar.AI</span>
-      <span class="ver" id="brand-ver">v1.0.0</span>
+      <span class="ver" id="brand-ver">v1.1.0</span>
+      <span class="topbar-route" id="topbar-route">/ HOME</span>
     </div>
     <div class="topbar-actions">
       <button class="topbar-btn" id="nav-home" title="Home" aria-label="Home">⌂</button>
@@ -32,15 +32,17 @@
     </div>
   </header>
 
-  <!-- App body — pages get appended here by app.js -->
-  <main class="app" id="app"></main>
+  <!-- Main app body: side rail + content (only desktop shows side rail) -->
+  <main class="app">
+    <aside class="side-rail" id="side-rail" aria-label="Navigation"></aside>
+    <div class="app-content" id="app-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+  </main>
 
-  <!-- Bottom nav -->
+  <!-- Bottom nav (mobile only) -->
   <nav class="bnav" aria-label="Modules">
     <div class="bnav-inner" id="bnav-inner"></div>
   </nav>
 
-  <!-- ES module entry -->
   <script type="module" src="core/app.js"></script>
 </body>
 </html>
