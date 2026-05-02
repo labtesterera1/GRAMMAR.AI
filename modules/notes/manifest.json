@@ -1,0 +1,24 @@
+{
+  "id": "notes",
+  "name": "Notes",
+  "version": "1.0.0",
+  "description": "Password-protected notes vault with Quick/Daily/Study types, tags, AI tools, and export.",
+  "icon": "📋",
+  "options": {
+    "passwordLength": 6,
+    "noteTypes": [
+      { "key": "quick", "label": "⚡ Quick Note",     "icon": "⚡" },
+      { "key": "daily", "label": "📅 Daily Journal",  "icon": "📅" },
+      { "key": "study", "label": "📚 Study Note",     "icon": "📚" }
+    ],
+    "tags": [
+      "#grammar", "#vocab", "#tense", "#email", "#hindi", "#daily", "#idea", "#tip"
+    ],
+    "aiActions": [
+      { "key": "improve",   "label": "✨ Improve English" },
+      { "key": "summarise", "label": "📝 Summarise" },
+      { "key": "translate", "label": "🇮🇳 Hindi" },
+      { "key": "explain",   "label": "💡 Explain" }
+    ]
+  }
+}
