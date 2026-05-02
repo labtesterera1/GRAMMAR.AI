@@ -37,6 +37,7 @@ export default async function init({ root, module }) {
   const elCopy    = $('#tr-copy', root);
   const elDl      = $('#tr-download', root);
   const elHist    = $('#tr-history', root);
+  const elSpeak   = $('#tr-speak', root);
   const elSendOut = $('#tr-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
@@ -85,6 +86,14 @@ export default async function init({ root, module }) {
     textarea: elInput,
     voiceLang: state.direction === 'hi2en' ? 'hi-IN' : 'en-IN',
     enterToSend: false,
+    attachAccept: '.txt,.md',
+    onAttach: async (file) => {
+      const text = await file.text().catch(() => '');
+      elInput.value = (elInput.value ? elInput.value + '\n\n' : '') + text;
+      state.input = elInput.value;
+      SCOPE.set('input', state.input);
+      toast(`Attached: ${file.name}`, 'success');
+    },
     onImprove: () => quickAction('quick_improve', 'Improving…'),
     onTranslate: () => translate(),
     onSend: () => translate()
@@ -102,10 +111,21 @@ export default async function init({ root, module }) {
     elInput.value = '';
     elOutput.textContent = 'Translation will appear here…';
     elOutput.classList.add('placeholder');
-    state.input = '';
-    state.output = '';
-    SCOPE.set('input', '');
-    SCOPE.set('output', '');
+    state.input = ''; state.output = '';
+    SCOPE.set('input', ''); SCOPE.set('output', '');
+    if (elSendOut) { elSendOut.classList.add('hide'); elSendOut.innerHTML = ''; }
+  });
+
+  // SPEAK
+  if (elSpeak) elSpeak.addEventListener('click', () => {
+    if (!state.output) { toast('Nothing to speak yet'); return; }
+    if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(state.output);
+    u.lang = state.direction === 'en2hi' ? 'hi-IN' : 'en-IN';
+    u.rate = 0.92;
+    speechSynthesis.speak(u);
+    toast('Speaking…');
   });
 
   elCopy.addEventListener('click', () => {
@@ -114,8 +134,9 @@ export default async function init({ root, module }) {
   });
   elDl.addEventListener('click', () => {
     if (!state.output) { toast('Nothing to download yet'); return; }
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    downloadFile(`translation-${state.direction}-${ts}.txt`, state.output, 'text/plain');
+    const ver = '1.2.3';
+    const d   = new Date().toISOString().slice(0,10);
+    downloadFile(`Grammar.AI_v${ver}_Translator-${state.direction}_${d}.txt`, state.output, 'text/plain');
   });
 
   elHist.addEventListener('click', () => {
