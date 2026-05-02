@@ -2,7 +2,7 @@
    CHAT MODULE · controller · v1.1.1
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -130,7 +130,32 @@ export default async function init({ root, module }) {
     refreshStatus();
     toast('History cleared', 'success');
   });
-  $('#chat-export', root).addEventListener('click', exportChat);
+
+  $('#chat-export', root).addEventListener('click', () => {
+    if (state.history.length === 0) { toast('No history to export'); return; }
+    const v = '1.2.1';
+    const d = new Date().toISOString().slice(0,10);
+    openSheet(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-inner">
+        <div class="kicker"><span>SEND OUT</span><span class="lime">${state.history.length} MESSAGES</span></div>
+        <div class="sheet-title">Share Chat</div>
+        <div id="chat-sendout-mount"></div>
+        <button class="btn mt-12" style="width:100%;" id="chat-so-close">CLOSE</button>
+      </div>
+    `);
+    setTimeout(() => {
+      const mount = document.getElementById('chat-sendout-mount');
+      if (mount) {
+        mountSendOut(
+          mount,
+          () => buildChatText(),
+          () => `Grammar.AI_v${v}_Chat_${d}`
+        );
+      }
+      document.getElementById('chat-so-close')?.addEventListener('click', closeSheet);
+    }, 50);
+  });
 
   async function runQuick(promptKey, busyMsg) {
     const text = elInput.value.trim();
@@ -341,15 +366,12 @@ export default async function init({ root, module }) {
     elInput.style.height = Math.min(180, elInput.scrollHeight) + 'px';
   }
 
-  function exportChat() {
-    if (state.history.length === 0) { toast('No history to export'); return; }
-    const lines = state.history.map(m => {
+  function buildChatText() {
+    return state.history.map(m => {
       const who = m.role === 'user' ? 'YOU' : 'GRAMMAR.AI';
       const t = new Date(m.ts).toISOString();
       return `[${t}] ${who}:\n${m.content}\n`;
     }).join('\n');
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    downloadFile(`grammar-ai-chat-${ts}.txt`, lines, 'text/plain');
   }
 
   return {
