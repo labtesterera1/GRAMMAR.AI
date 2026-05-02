@@ -1,0 +1,102 @@
+/* ────────────────────────────────────────────────────────────────
+   MODULE SHARED STYLES · v1.1.1
+   Used by paragraph/email/translator/exercise.
+   ──────────────────────────────────────────────────────────────── */
+
+/* ─── Tense grid (Exercise) ─── */
+.tense-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+.tense-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 10px 12px;
+  border: 0.5px solid var(--border-2);
+  background: var(--surface);
+  color: var(--muted);
+  text-align: left;
+  transition: all 0.15s var(--ease);
+}
+.tense-btn:hover {
+  color: var(--text);
+  border-color: var(--border-3);
+}
+.tense-btn.sel {
+  color: var(--bg);
+  background: var(--lime);
+  border-color: var(--lime);
+  font-weight: 500;
+}
+
+/* ─── Flashcard ─── */
+.flash-progress {
+  height: 3px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+}
+.flash-bar {
+  height: 100%;
+  background: var(--lime);
+  transition: width 0.3s var(--ease);
+  width: 10%;
+}
+.flash-card {
+  padding: 24px 20px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+.flash-hint {
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.flash-q {
+  font-size: 22px;
+  line-height: 1.3;
+  color: var(--text);
+}
+.flash-back {
+  border-top: 0.5px solid var(--border);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.flash-a {
+  font-size: 22px;
+  color: var(--lime);
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.flash-exp {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ─── Sub-section visibility helper for Exercise ─── */
+.ex-sub { margin-top: 14px; }
+
+/* ─── Welcome card (used by Chat) ─── */
+.welcome { padding: 18px 16px; }
+
+/* ─── Responsive ─── */
+@media (min-width: 700px) {
+  .tense-grid { grid-template-columns: repeat(3, 1fr); }
+  .flash-q, .flash-a { font-size: 28px; }
+}
+@media (min-width: 1024px) {
+  .tense-grid { grid-template-columns: repeat(5, 1fr); }
+  .flash-card { min-height: 260px; padding: 32px 28px; }
+  .flash-q, .flash-a { font-size: 32px; }
+}
