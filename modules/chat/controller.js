@@ -294,13 +294,32 @@ export default async function init({ root, module }) {
       </div>
       <div class="bubble-body">${renderMd(m.content)}</div>
       <div class="bubble-actions">
-        <button class="bubble-act" data-act="copy">COPY</button>
-        ${m.role === 'assistant' ? `<button class="bubble-act" data-act="reuse">REUSE</button>` : ''}
+        <button class="bubble-act" data-act="copy">⧉ COPY</button>
+        ${m.role === 'assistant' ? `<button class="bubble-act" data-act="reuse">↺ REUSE</button>` : ''}
+        <button class="bubble-act" data-act="download">⬇ SAVE</button>
       </div>
     `;
     wrap.querySelector('[data-act="copy"]').addEventListener('click', () => copyToClipboard(m.content));
     const reuse = wrap.querySelector('[data-act="reuse"]');
-    if (reuse) reuse.addEventListener('click', () => { elInput.value = m.content; elInput.focus(); autoresize(); });
+    if (reuse) reuse.addEventListener('click', () => {
+      elInput.value = m.content;
+      elInput.focus();
+      autoresize();
+      // Scroll to composer
+      const page = root.closest('.page');
+      if (page) page.scrollTop = page.scrollHeight;
+    });
+    wrap.querySelector('[data-act="download"]').addEventListener('click', () => {
+      const who  = m.role === 'user' ? 'You' : 'GrammarAI';
+      const ts   = new Date(m.ts).toISOString().slice(0,19).replace(/[:T]/g,'-');
+      const v    = '1.2.1';
+      const d    = new Date().toISOString().slice(0,10);
+      downloadFile(
+        `Grammar.AI_v${v}_Chat-${who}_${d}.txt`,
+        `[${new Date(m.ts).toISOString()}] ${who.toUpperCase()}:\n${m.content}`,
+        'text/plain'
+      );
+    });
     elStream.appendChild(wrap);
     if (scroll) scrollBottom();
   }
@@ -318,17 +337,13 @@ export default async function init({ root, module }) {
   }
 
   function renderWelcome() {
-    const greet = state.lang === 'hindi' ? 'नमस्ते! ग्रामर सीखने के लिए तैयार?'
-                : state.lang === 'english' ? "Hi! Ready to learn some grammar?"
-                : 'Namaste! Ready to learn some grammar?';
-    const tip = 'Tap a chip above or type a question. Long messages, voice, attachments — all supported.';
     const noRoute = !AI.hasAnyRoute();
     return `
       <div class="welcome frame subtle">
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         <div class="kicker"><span>WELCOME</span><span class="${noRoute ? 'rust' : 'lime'}">● ${noRoute ? 'NEEDS SETUP' : 'READY'}</span></div>
-        <div class="welcome-greet serif">${esc(greet)}</div>
-        <div class="welcome-tip mono">${esc(tip)}</div>
+        <div class="welcome-greet serif">Namaste Nik! 👋</div>
+        <div class="welcome-tip mono">I am your Grammar AI Agent. Ask me anything in English or Hindi!</div>
         ${noRoute ? `
           <div class="welcome-cta mono">
             <span>⚠ Set up an AI route once to start chatting.</span>
