@@ -7,6 +7,7 @@
 import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, pickFile, readFileAsText } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
+import { go } from '../../core/router.js';
 
 /** Markdown-lite renderer: bold, italic, code, line breaks, lists. Safe via escape. */
 function renderMd(s) {
@@ -49,13 +50,45 @@ export default async function init({ root, module }) {
 
   /* ─── State ─── */
   const state = {
-    lang: SCOPE.get('lang', opts.defaultLanguageMode || 'bilingual'),
+    lang: SCOPE.get('lang', opts.defaultLanguageMode || 'english'),
     history: SCOPE.get('history', []),
     attachments: [],
     sending: false,
     abort: null,
     voice: null
   };
+
+  /* ─── No-key helper: opens a friendly setup sheet ─── */
+  function showNoKeyHelp() {
+    openSheet(`
+      <div class="kicker"><span>SETUP REQUIRED</span><span class="rust">● NO KEY</span></div>
+      <div class="sheet-title">One-time setup</div>
+      <div class="frame subtle" style="padding:14px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono" style="font-size:12px;line-height:1.7;color:var(--text);">
+          Grammar.AI uses your own free API key — no backend, no Worker.
+          Pick one provider, paste the key in Settings, and you're done.
+        </div>
+        <div class="ticks" style="margin:14px 0 8px;">${'<i></i>'.repeat(28)}</div>
+        <div class="mono" style="font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;line-height:1.8;">
+          1 · OPEN SETTINGS<br>
+          2 · PASTE A KEY (groq is fastest, free)<br>
+          3 · TAP SAVE → TEST<br>
+          4 · COME BACK AND CHAT
+        </div>
+      </div>
+      <div class="row gap-12 mt-12">
+        <button class="btn flex-1" id="nokey-cancel">CANCEL</button>
+        <button class="btn btn-primary flex-1" id="nokey-go">⚙ OPEN SETTINGS</button>
+      </div>
+    `);
+    setTimeout(() => {
+      const cancel = document.getElementById('nokey-cancel');
+      const goBtn  = document.getElementById('nokey-go');
+      if (cancel) cancel.addEventListener('click', closeSheet);
+      if (goBtn)  goBtn.addEventListener('click', () => { closeSheet(); go('settings'); });
+    }, 50);
+  }
 
   /* ─── Element refs ─── */
   const elStream  = $('#msg-stream', root);
@@ -76,9 +109,16 @@ export default async function init({ root, module }) {
   paintQuickChips();
   refreshStatus();
 
+  /* ─── Paint welcome (with CTA wiring) ─── */
+  function paintWelcome() {
+    elStream.innerHTML = renderWelcome();
+    const cta = document.getElementById('welcome-cta-btn');
+    if (cta) cta.addEventListener('click', showNoKeyHelp);
+  }
+
   /* ─── Welcome message if empty ─── */
   if (state.history.length === 0) {
-    elStream.innerHTML = renderWelcome();
+    paintWelcome();
   }
 
   /* ─── Wire language chips ─── */
@@ -132,7 +172,7 @@ export default async function init({ root, module }) {
     if (!confirm('Clear the entire chat history?')) return;
     state.history = [];
     SCOPE.set('history', state.history);
-    elStream.innerHTML = renderWelcome();
+    paintWelcome();
     refreshStatus();
     toast('History cleared', 'success');
   });
@@ -319,7 +359,7 @@ export default async function init({ root, module }) {
   async function runQuick(promptKey, busyMsg) {
     const text = elInput.value.trim();
     if (!text) { toast('Type something first'); return; }
-    if (!AI.hasAnyKey()) { toast('Set an API key in Settings', 'error'); return; }
+    if (!AI.hasAnyKey()) { showNoKeyHelp(); return; }
     const prompt = prompts[promptKey];
     if (!prompt) { toast('Prompt missing', 'error'); return; }
     toast(busyMsg);
@@ -383,7 +423,7 @@ export default async function init({ root, module }) {
     if (state.sending) { toast('Already sending'); return; }
     const text = elInput.value.trim();
     if (!text && state.attachments.length === 0) { toast('Type a message'); return; }
-    if (!AI.hasAnyKey()) { toast('Set an API key in Settings first', 'error'); return; }
+    if (!AI.hasAnyKey()) { showNoKeyHelp(); return; }
 
     let userText = text;
     if (state.attachments.length) {
@@ -447,7 +487,7 @@ export default async function init({ root, module }) {
 
   function paintHistory() {
     if (state.history.length === 0) {
-      elStream.innerHTML = renderWelcome();
+      paintWelcome();
       return;
     }
     elStream.innerHTML = '';
@@ -494,12 +534,18 @@ export default async function init({ root, module }) {
                 : state.lang === 'english' ? "Hi! Ready to learn some grammar?"
                 : 'Namaste! Ready to learn some grammar?';
     const tip = 'Tap a chip below or type a question. Long messages, voice, attachments — all supported.';
+    const noKey = !AI.hasAnyKey();
     return `
       <div class="welcome frame subtle">
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="kicker"><span>WELCOME</span><span class="lime">● READY</span></div>
+        <div class="kicker"><span>WELCOME</span><span class="${noKey ? 'rust' : 'lime'}">● ${noKey ? 'NEEDS KEY' : 'READY'}</span></div>
         <div class="welcome-greet serif">${esc(greet)}</div>
         <div class="welcome-tip mono">${esc(tip)}</div>
+        ${noKey ? `
+          <div class="welcome-cta mono" id="welcome-cta">
+            <span>⚠ Add a free API key once to start chatting.</span>
+            <button class="btn btn-primary btn-icon" id="welcome-cta-btn">⚙ SETUP</button>
+          </div>` : ''}
       </div>
     `;
   }

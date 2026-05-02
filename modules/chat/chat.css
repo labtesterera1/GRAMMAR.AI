@@ -54,6 +54,19 @@
   line-height: 1.6;
   margin-top: 8px;
 }
+.welcome-cta {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--rust);
+  letter-spacing: 0.04em;
+}
+.welcome-cta .btn { padding: 8px 14px; font-size: 10px; flex-shrink: 0; }
 
 /* Message stream */
 .msg-stream {

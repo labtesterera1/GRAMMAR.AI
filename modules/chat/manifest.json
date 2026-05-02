@@ -1,7 +1,7 @@
 {
   "id": "chat",
   "name": "Chat",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Conversational grammar tutor with bilingual modes, history, and an editor toolbar.",
   "icon": "💬",
   "storageKeys": [
@@ -20,7 +20,7 @@
   "options": {
     "historyMax": 50,
     "languageModes": ["bilingual", "english", "hindi"],
-    "defaultLanguageMode": "bilingual",
+    "defaultLanguageMode": "english",
     "quickChips": [
       { "label": "Check grammar",  "text": "Please check my grammar in this sentence: " },
       { "label": "Tense rules",    "text": "Explain English tense rules with simple examples." },
