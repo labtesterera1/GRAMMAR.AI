@@ -2,7 +2,7 @@
    PARAGRAPH MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -34,9 +34,24 @@ export default async function init({ root, module }) {
   const elCopy    = $('#para-copy', root);
   const elDl      = $('#para-download', root);
   const elTbMount = $('#toolbar-mount', root);
+  const elSendOut = $('#para-sendout', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elWC      = root.querySelector('[data-bind="wordCount"]');
+
+  if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
+
+  function showSendOut() {
+    if (!state.lastOutput || !elSendOut) return;
+    elSendOut.classList.remove('hide');
+    const v = '1.2.1';
+    const d = new Date().toISOString().slice(0,10);
+    mountSendOut(
+      elSendOut,
+      () => state.lastOutput,
+      () => `Grammar.AI_v${v}_Paragraph_${d}`
+    );
+  }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
@@ -49,6 +64,7 @@ export default async function init({ root, module }) {
   if (state.lastOutput) {
     elOutput.textContent = state.lastOutput;
     elOutput.classList.remove('placeholder');
+    showSendOut();
   }
   refreshStatus();
   updateWC();
@@ -150,6 +166,7 @@ export default async function init({ root, module }) {
       elOutput.textContent = r.text;
       state.lastOutput = r.text;
       SCOPE.set('lastOutput', state.lastOutput);
+      showSendOut();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
       elOutput.textContent = 'Error: ' + (e.details?.[0] || e.message);
