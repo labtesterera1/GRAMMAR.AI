@@ -1,112 +1,93 @@
-# Grammar.AI · SmartApp
+# Grammar.AI · SmartApp · v1.1.0
 
-> v1.0.0 — Modular bilingual grammar tutor. No backend, no Worker. Pure GitHub Pages.
+> Bilingual grammar tutor. No backend required. Direct API or Worker proxy. Pure GitHub Pages.
+
+## What's new in v1.1.0
+
+- **Responsive design** — desktop side-rail, multi-column home grid, two-pane Settings
+- **Worker proxy restored** — Save URL in Settings + 3-mode toggle (Worker first / Worker only / Direct keys)
+- **Persistent Storage API** — silently requested on boot; mode + usage shown in Settings
+- **Chat layout overhaul** — composer never overlaps content, dedicated scrolling stream area
+- **Per-provider primary star** — pick which provider to try first
+- **Keyboard shortcuts** — `/` focus chat input, `Esc` close sheet, `g h` home, `g s` settings, `g c` chat
+- **Full version history** in About section
 
 ## Run locally
 
 ```bash
-# Serve the folder (any static server works). Examples:
 python3 -m http.server 8080
-# or
-npx serve .
+# or: npx serve .
 ```
 
-Open http://localhost:8080 — the app boots, registers a service worker, and is fully usable offline after the first load.
-
-## Architecture (modular by JSON)
+## Architecture
 
 ```
 .
-├── index.html              # Thin shell — topbar, app container, bottom nav
+├── index.html              # Shell — topbar + side-rail + content + bottom nav
 ├── manifest.json           # PWA manifest
 ├── sw.js                   # Service worker (cache + offline)
 ├── config/
-│   ├── version.json        # App version, build, channel, history
+│   ├── version.json        # App version + changelog
 │   ├── modules.json        # ⭐ Drives home + nav. Add a module here.
-│   ├── providers.json      # AI providers (Groq / Cerebras / Gemini / Mistral)
-│   └── prompts.json        # All system prompts in one place
-├── core/                   # Engine — should rarely change
-│   ├── app.js              # Orchestrator / boot
-│   ├── router.js           # Hash routing (#/ , #/m/<id> , #/settings)
-│   ├── loader.js           # Loads modules dynamically
-│   ├── home.js             # Home grid renderer
+│   ├── providers.json      # AI providers
+│   └── prompts.json        # All system prompts
+├── core/                   # Engine
+│   ├── app.js              # Boot + routing + nav
+│   ├── router.js           # Hash routing
+│   ├── loader.js           # Lazy module loader
+│   ├── home.js             # Home grid
 │   ├── settings.js         # Settings page
-│   ├── storage.js          # Namespaced localStorage wrapper
-│   ├── ai.js               # Provider-agnostic AI client
-│   └── ui.js               # Toast, sheet, copy, download, helpers
-├── assets/
-│   ├── theme.css           # ⭐ Design tokens — single source of truth
-│   ├── home.css
-│   └── settings.css
-├── modules/
-│   └── chat/
-│       ├── manifest.json   # Module-level config
-│       ├── view.html       # Markup
-│       ├── controller.js   # Logic — exports default factory
-│       └── chat.css        # Module-specific styles
+│   ├── storage.js          # localStorage + Persistent API
+│   ├── ai.js               # Worker + direct calls + mode + primary
+│   └── ui.js               # Toast / sheet / copy / download
+├── assets/                 # Theme + page CSS
+├── modules/chat/           # Chat module
 └── icons/
-    ├── icon-192.png
-    └── icon-512.png
 ```
 
-## ➕ Add a new module (3 steps)
+## Add a new module (3 steps)
 
-**1. Add a folder** `modules/<id>/` containing:
-   - `manifest.json` — id, name, version, options, storage keys
-   - `view.html` — pure markup (no scripts)
-   - `controller.js` — `export default async function init({ root, module }) { ... return { onShow, onHide } }`
-   - Optionally `<id>.css` — module styles (link from `index.html` if needed)
+1. Drop folder `modules/<id>/` with `manifest.json`, `view.html`, `controller.js`, optional CSS.
+2. Append entry in `config/modules.json` with `"status": "ready"`.
+3. Done. Home grid + side rail + bottom nav pick it up automatically.
 
-**2. Append an entry** to `config/modules.json`:
-```json
-{
-  "id": "translator",
-  "num": "04",
-  "name": "Translator",
-  "tagline": "EN · HI · CONVERT",
-  "icon": "🔄",
-  "status": "ready",
-  "order": 4,
-  "showInNav": true
-}
-```
+## AI Routes
 
-**3. Done.** The home grid, the bottom nav, and the router pick it up automatically.
+Three modes, set in **Settings → AI ROUTE MODE**:
 
-## Status flag
+| Mode | Behavior |
+|---|---|
+| `worker-first` | Try Worker first, fall back to direct provider keys. Recommended. |
+| `worker-only`  | Only Worker. Fail if Worker fails. |
+| `direct-only`  | Ignore Worker, use direct keys only. |
 
-- `ready` — module is loaded when the user opens it.
-- `soon` — placeholder "Coming next" screen is shown. No code is fetched.
+The Worker endpoint expects `POST <worker_url>/api/chat` with body `{messages, provider, temperature, maxTokens}` and returns `{text}` (or OpenAI/Gemini-shaped JSON — both parsed).
 
-To temporarily disable a module without removing files: set its status to `soon`.
+## Storage
 
-## Built-in storage keys (namespace `gai.`)
+- **Persistent storage** silently requested on first boot via `navigator.storage.persist()`.
+- Settings → STORAGE shows current mode (`✓ Persistent` or `Best-effort`) and live usage (`141 KB / 207 MB`).
+- **Browser cache clear ≠ data wipe** when persistent. *Clear all site data still wipes everything* — use Export JSON for backups.
 
-| Key | Module | Description |
-|---|---|---|
-| `gai.keys.<provider>` | settings | API key per provider |
-| `gai.chat.history` | chat | Last N messages (N from manifest, default 50) |
-| `gai.chat.lang` | chat | bilingual / english / hindi |
+## Keyboard shortcuts (desktop)
 
-A new module's keys should be `gai.<id>.<thing>` — use `Storage.scope('<id>')` for cleanliness.
+| Key | Action |
+|---|---|
+| `/` | Focus chat composer |
+| `Esc` | Close any open sheet/modal |
+| `g h` | Home |
+| `g s` | Settings |
+| `g c` | Chat module |
 
-## Backup / restore
+## Versioning
 
-Settings → Data → Export JSON downloads everything (notes, drafts, keys, preferences).
-Settings → Data → Import JSON restores from a backup. Both are one-tap.
+- App version: `config/version.json`
+- Module version: `modules/<id>/manifest.json`
+- SW cache version bumped per release (`gai-v1.1.0`)
 
-## Why this architecture?
+## Deploy
 
-- **No backend required** — direct browser calls to AI providers, BYOK.
-- **No build step** — pure ES modules. Push to GitHub Pages, done.
-- **One config file controls modules** — `modules.json`. Changes appear without code edits.
-- **Themeable in one file** — `assets/theme.css` holds every color, font, dimension.
-- **Each module is isolated** — its own folder, controller, storage scope, prompts. Delete its folder + remove its entry → it's gone, nothing breaks.
-- **Skill/feature parity with old app** — every feature from the original `NikGrammer-Agent-main` was audited and migrated (with persistence upgrades).
-
-## Adding a provider
-
-Edit `config/providers.json`. Each entry needs `endpoint`, `format` (`openai` or `gemini`), `model`, and an optional `keyUrl`. Settings page rebuilds itself from this file.
+Push the folder to a public GitHub repo with Pages enabled on root. Done.
 
 ## License
 
