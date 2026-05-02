@@ -3,7 +3,7 @@
    Sub-tabs: tense / flash / vocab / story
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -160,6 +160,14 @@ export default async function init({ root, module }) {
     elTQInfo.textContent = `${(d.questions || []).length} Qs`;
     elTQList.textContent = (d.questions || []).map(q => `${q.no}. ${q.sentence}\n   (${q.hint})`).join('\n\n');
     elTAList.textContent = (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
+    if (elTenseSendOut) {
+      elTenseSendOut.classList.remove('hide');
+      const v = '1.2.1', dt = new Date().toISOString().slice(0,10);
+      mountSendOut(elTenseSendOut,
+        () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n${elTQList.textContent}\n\nANSWERS:\n${elTAList.textContent}`,
+        () => `Grammar.AI_v${v}_Exercise-${(d.tense||'').replace(/ /g,'-')}_${dt}`
+      );
+    }
   }
 
   function downloadTenseExercise() {
@@ -401,6 +409,8 @@ export default async function init({ root, module }) {
   const elSBody    = $('#story-body', root);
   const elSGrammar = $('#story-grammar', root);
   const elSLesson  = $('#story-lesson', root);
+  const elStorySendOut = $('#story-sendout', root);
+  const elTenseSendOut = $('#tense-sendout', root);
 
   elSTopic.innerHTML = (opts.storyTopics || []).map(t =>
     `<option value="${esc(t)}" ${t === state.storyTopic ? 'selected' : ''}>${esc(t)}</option>`
@@ -453,6 +463,14 @@ export default async function init({ root, module }) {
     elSBody.textContent = d.story || '';
     elSGrammar.textContent = d.grammarFocus || '';
     elSLesson.textContent = d.lesson || '';
+    if (elStorySendOut) {
+      elStorySendOut.classList.remove('hide');
+      const v = '1.2.1', dt = new Date().toISOString().slice(0,10);
+      mountSendOut(elStorySendOut,
+        () => `${d.title}\n\n${d.story}\n\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}`,
+        () => `Grammar.AI_v${v}_Story-${(d.topic||'').replace(/ /g,'-')}_${dt}`
+      );
+    }
   }
 
   function downloadStory() {
