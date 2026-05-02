@@ -100,6 +100,7 @@ export default async function init({ root, module }) {
   const elTQList   = $('#tense-q-list', root);
   const elTAList   = $('#tense-a-list', root);
   const elTQInfo   = $('#tense-q-info', root);
+  const elTenseSendOut = $('#tense-sendout', root);
 
   elTGrid.innerHTML = (opts.tenses || []).map(t =>
     `<button class="tense-btn ${t === state.selectedTense ? 'sel' : ''}" data-tense="${esc(t)}">${esc(t)}</button>`
@@ -435,7 +436,6 @@ export default async function init({ root, module }) {
   const elSGrammar = $('#story-grammar', root);
   const elSLesson  = $('#story-lesson', root);
   const elStorySendOut = $('#story-sendout', root);
-  const elTenseSendOut = $('#tense-sendout', root);
 
   elSTopic.innerHTML = (opts.storyTopics || []).map(t =>
     `<option value="${esc(t)}" ${t === state.storyTopic ? 'selected' : ''}>${esc(t)}</option>`
