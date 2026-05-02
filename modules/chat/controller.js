@@ -1,32 +1,22 @@
 /* ────────────────────────────────────────────────────────────────
-   CHAT MODULE · controller
-   The controller is a default-export factory that wires up the
-   already-rendered view. It exposes optional onShow / onHide hooks.
+   CHAT MODULE · controller · v1.1.0
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, pickFile, readFileAsText } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
 
-/** Markdown-lite renderer: bold, italic, code, line breaks, lists. Safe via escape. */
+/** Markdown-lite renderer. */
 function renderMd(s) {
   let html = esc(s);
-  // code blocks ```...```
   html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
-  // inline code `...`
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  // bold **...**
   html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
-  // italic *...*  (avoid matching list bullets)
   html = html.replace(/(^|\W)\*([^\*\n]+)\*(?=\W|$)/g, '$1<em>$2</em>');
-  // highlight ==...==
   html = html.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
-  // ordered list lines
   html = html.replace(/(^|\n)(\d+)\.\s+(.+)/g, (_, br, n, t) => `${br}<div class="li-num">${n}. ${t}</div>`);
-  // unordered list lines
   html = html.replace(/(^|\n)[-•]\s+(.+)/g, (_, br, t) => `${br}<div class="li-bul">• ${t}</div>`);
-  // line breaks
   html = html.replace(/\n/g, '<br>');
   return html;
 }
@@ -35,18 +25,13 @@ const SCOPE = Storage.scope('chat');
 
 export default async function init({ root, module }) {
 
-  /* ─── Load module manifest for options ─── */
+  /* ─── Load module manifest + prompts ─── */
   let manifest = { options: {} };
-  try {
-    manifest = await fetch('modules/chat/manifest.json').then(r => r.json());
-  } catch { /* fallback to defaults */ }
+  try { manifest = await fetch('modules/chat/manifest.json').then(r => r.json()); } catch {}
   const opts = manifest.options || {};
 
-  /* ─── Load prompts ─── */
   let prompts = {};
-  try {
-    prompts = await fetch('config/prompts.json').then(r => r.json());
-  } catch (e) { console.warn('Prompts load failed', e); }
+  try { prompts = await fetch('config/prompts.json').then(r => r.json()); } catch {}
 
   /* ─── State ─── */
   const state = {
@@ -54,72 +39,60 @@ export default async function init({ root, module }) {
     history: SCOPE.get('history', []),
     attachments: [],
     sending: false,
-    abort: null,
     voice: null
   };
 
-  /* ─── No-key helper: opens a friendly setup sheet ─── */
-  function showNoKeyHelp() {
-    openSheet(`
-      <div class="kicker"><span>SETUP REQUIRED</span><span class="rust">● NO KEY</span></div>
-      <div class="sheet-title">One-time setup</div>
-      <div class="frame subtle" style="padding:14px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono" style="font-size:12px;line-height:1.7;color:var(--text);">
-          Grammar.AI uses your own free API key — no backend, no Worker.
-          Pick one provider, paste the key in Settings, and you're done.
-        </div>
-        <div class="ticks" style="margin:14px 0 8px;">${'<i></i>'.repeat(28)}</div>
-        <div class="mono" style="font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;line-height:1.8;">
-          1 · OPEN SETTINGS<br>
-          2 · PASTE A KEY (groq is fastest, free)<br>
-          3 · TAP SAVE → TEST<br>
-          4 · COME BACK AND CHAT
-        </div>
-      </div>
-      <div class="row gap-12 mt-12">
-        <button class="btn flex-1" id="nokey-cancel">CANCEL</button>
-        <button class="btn btn-primary flex-1" id="nokey-go">⚙ OPEN SETTINGS</button>
-      </div>
-    `);
-    setTimeout(() => {
-      const cancel = document.getElementById('nokey-cancel');
-      const goBtn  = document.getElementById('nokey-go');
-      if (cancel) cancel.addEventListener('click', closeSheet);
-      if (goBtn)  goBtn.addEventListener('click', () => { closeSheet(); go('settings'); });
-    }, 50);
-  }
-
-  /* ─── Element refs ─── */
-  const elStream  = $('#msg-stream', root);
-  const elInput   = $('#composer-input', root);
-  const elQuick   = $('#quick-chips', root);
-  const elAttach  = $('#attach-bar', root);
-  const elFile    = $('#file-input', root);
-  const elHistL   = root.querySelector('[data-bind="historyLine"]');
-  const elModelL  = root.querySelector('[data-bind="modelLine"]');
-  const elStatus  = root.querySelector('[data-bind="status"]');
-  const elModNum  = root.querySelector('[data-bind="moduleNum"]');
+  /* ─── Refs ─── */
+  const elStream     = $('#msg-stream', root);
+  const elStreamWrap = root.querySelector('.chat-stream-wrap');
+  const elInput      = $('#composer-input', root);
+  const elQuick      = $('#quick-chips', root);
+  const elAttach     = $('#attach-bar', root);
+  const elFile       = $('#file-input', root);
+  const elHistL      = root.querySelector('[data-bind="historyLine"]');
+  const elModelL     = root.querySelector('[data-bind="modelLine"]');
+  const elStatus     = root.querySelector('[data-bind="status"]');
+  const elModNum     = root.querySelector('[data-bind="moduleNum"]');
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
+  /* ─── No-route helper sheet ─── */
+  function showNoRouteHelp() {
+    const hasW = AI.hasWorker();
+    const hasK = AI.hasAnyKey();
+    openSheet(`
+      <div class="kicker"><span>SETUP REQUIRED</span><span class="rust">● NO ROUTE</span></div>
+      <div class="sheet-title">Connect an AI route</div>
+      <div class="frame subtle" style="padding:14px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono" style="font-size:12px;line-height:1.7;color:var(--text);">
+          Grammar.AI needs at least one route to talk to an AI:
+        </div>
+        <div class="ticks" style="margin:12px 0 8px;">${'<i></i>'.repeat(28)}</div>
+        <div class="mono" style="font-size:11px;line-height:1.8;letter-spacing:0.06em;">
+          ${hasW ? '✓' : '○'} <span class="${hasW ? 'lime' : 'muted'}">Cloudflare Worker URL</span><br>
+          ${hasK ? '✓' : '○'} <span class="${hasK ? 'lime' : 'muted'}">Or a free provider key (Groq is fastest)</span>
+        </div>
+        <div class="mode-help" style="margin-top:10px;">Set up either one — or both. Direct keys work as fallback if the Worker fails.</div>
+      </div>
+      <div class="row gap-12 mt-12">
+        <button class="btn flex-1" id="nr-cancel">CANCEL</button>
+        <button class="btn btn-primary flex-1" id="nr-go">⚙ OPEN SETTINGS</button>
+      </div>
+    `);
+    setTimeout(() => {
+      document.getElementById('nr-cancel')?.addEventListener('click', closeSheet);
+      document.getElementById('nr-go')?.addEventListener('click', () => { closeSheet(); go('settings'); });
+    }, 50);
+  }
+
   /* ─── Initial paint ─── */
   paintLang();
-  paintHistory();
   paintQuickChips();
   refreshStatus();
 
-  /* ─── Paint welcome (with CTA wiring) ─── */
-  function paintWelcome() {
-    elStream.innerHTML = renderWelcome();
-    const cta = document.getElementById('welcome-cta-btn');
-    if (cta) cta.addEventListener('click', showNoKeyHelp);
-  }
-
-  /* ─── Welcome message if empty ─── */
-  if (state.history.length === 0) {
-    paintWelcome();
-  }
+  if (state.history.length === 0) paintWelcome();
+  else paintHistory();
 
   /* ─── Wire language chips ─── */
   $$('.chip[data-lang]', root).forEach(b => {
@@ -145,19 +118,19 @@ export default async function init({ root, module }) {
     });
   }
 
-  /* ─── Toolbar ─── */
+  /* ─── Toolbar wiring ─── */
   $$('.toolbar-btn', root).forEach(b => {
     b.addEventListener('click', () => onTool(b.dataset.tool));
   });
 
-  /* ─── File input handler ─── */
+  /* ─── File input ─── */
   elFile.addEventListener('change', () => {
     const f = elFile.files?.[0];
     elFile.value = '';
     if (f) addAttachment(f);
   });
 
-  /* ─── Composer behavior ─── */
+  /* ─── Composer ─── */
   elInput.addEventListener('input', autoresize);
   elInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -176,7 +149,6 @@ export default async function init({ root, module }) {
     refreshStatus();
     toast('History cleared', 'success');
   });
-
   $('#chat-export', root).addEventListener('click', () => exportChat());
 
   /* ─── Toolbar router ─── */
@@ -189,13 +161,11 @@ export default async function init({ root, module }) {
       case 'case':       return toggleCase();
       case 'dictionary': return openDictionary();
       case 'duplicate':  return duplicateLine();
-
       case 'attach':     return elFile.click();
       case 'voice':      return toggleVoice();
       case 'improve':    return runQuick('quick_improve', 'Improving…');
       case 'translate':  return quickTranslate();
-      case 'clear-input': return (elInput.value = '', autoresize());
-
+      case 'clear-input':elInput.value = ''; autoresize(); return;
       case 'send':       return send();
     }
   }
@@ -218,7 +188,8 @@ export default async function init({ root, module }) {
     const s = ta.selectionStart;
     const before = ta.value.slice(0, s);
     const lineStart = before.lastIndexOf('\n') + 1;
-    const line = ta.value.slice(lineStart, ta.value.indexOf('\n', s) === -1 ? ta.value.length : ta.value.indexOf('\n', s));
+    const lineEnd = ta.value.indexOf('\n', s) === -1 ? ta.value.length : ta.value.indexOf('\n', s);
+    const line = ta.value.slice(lineStart, lineEnd);
     if (line.startsWith(prefix)) {
       ta.value = ta.value.slice(0, lineStart) + line.slice(prefix.length) + ta.value.slice(lineStart + line.length);
     } else {
@@ -264,8 +235,9 @@ export default async function init({ root, module }) {
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         ${renderMd(text)}
       </div>
-      <button class="btn mt-12" onclick="this.closest('.sheet').classList.remove('show');this.closest('.sheet').previousElementSibling.classList.remove('show');">CLOSE</button>
+      <button class="btn mt-12" style="width:100%;" id="prev-close">CLOSE</button>
     `);
+    setTimeout(() => document.getElementById('prev-close')?.addEventListener('click', closeSheet), 50);
   }
 
   function openDictionary() {
@@ -273,7 +245,6 @@ export default async function init({ root, module }) {
     const s = ta.selectionStart, e = ta.selectionEnd;
     let word = ta.value.slice(s, e).trim();
     if (!word) {
-      // grab the word at caret
       const before = ta.value.slice(0, s);
       const after  = ta.value.slice(s);
       const m1 = before.match(/[\w'-]+$/);
@@ -292,9 +263,10 @@ export default async function init({ root, module }) {
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
         <div class="muted mono" style="font-size:11px;letter-spacing:0.06em;">Looking up…</div>
       </div>
+      <button class="btn mt-12" style="width:100%;" id="dict-close">CLOSE</button>
     `);
+    setTimeout(() => document.getElementById('dict-close')?.addEventListener('click', closeSheet), 50);
     try {
-      // Free dictionary API, no key required
       const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word));
       if (!r.ok) throw new Error('Not found');
       const arr = await r.json();
@@ -316,21 +288,20 @@ export default async function init({ root, module }) {
       const dictStatus = document.getElementById('dict-status');
       const dictBody = document.getElementById('dict-body');
       if (dictStatus) { dictStatus.textContent = '● FOUND'; dictStatus.className = 'lime'; }
-      if (dictBody)   dictBody.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>${html}`;
-    } catch (e) {
+      if (dictBody) dictBody.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>${html}`;
+    } catch {
       const dictStatus = document.getElementById('dict-status');
       const dictBody = document.getElementById('dict-body');
       if (dictStatus) { dictStatus.textContent = '● NOT FOUND'; dictStatus.className = 'rust'; }
-      if (dictBody)   dictBody.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="muted mono" style="font-size:11px;">No definition found for "${esc(word)}".</div>`;
+      if (dictBody) dictBody.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="muted mono" style="font-size:11px;">No definition found for "${esc(word)}".</div>`;
     }
   }
 
-  /* ─── Voice (Web Speech API) ─── */
+  /* ─── Voice ─── */
   function toggleVoice() {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Rec) { toast('Voice input not supported on this browser', 'error'); return; }
     const btn = root.querySelector('[data-tool="voice"]');
-
     if (state.voice) {
       state.voice.stop();
       state.voice = null;
@@ -359,7 +330,7 @@ export default async function init({ root, module }) {
   async function runQuick(promptKey, busyMsg) {
     const text = elInput.value.trim();
     if (!text) { toast('Type something first'); return; }
-    if (!AI.hasAnyKey()) { showNoKeyHelp(); return; }
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
     const prompt = prompts[promptKey];
     if (!prompt) { toast('Prompt missing', 'error'); return; }
     toast(busyMsg);
@@ -370,7 +341,7 @@ export default async function init({ root, module }) {
       ], { temperature: 0.3, maxTokens: 700 });
       elInput.value = r.text;
       autoresize();
-      toast('Done · ' + r.provider, 'success');
+      toast('Done · ' + r.route, 'success');
     } catch (e) {
       toast('Failed: ' + (e.details?.[0] || e.message), 'error');
     }
@@ -379,7 +350,6 @@ export default async function init({ root, module }) {
   function quickTranslate() {
     const text = elInput.value.trim();
     if (!text) { toast('Type something first'); return; }
-    // Detect: if contains Devanagari, translate to English. Else to Hindi.
     const isHindi = /[\u0900-\u097F]/.test(text);
     runQuick(isHindi ? 'quick_translate_hi2en' : 'quick_translate_en2hi', isHindi ? 'Hindi → English…' : 'English → Hindi…');
   }
@@ -390,13 +360,9 @@ export default async function init({ root, module }) {
     if (file.size > maxKb * 1024) { toast(`File too large (max ${maxKb} KB)`, 'error'); return; }
     const isText = file.type.startsWith('text/') || /\.(txt|md|json|csv)$/i.test(file.name);
     const att = { id: Math.random().toString(36).slice(2), name: file.name, size: file.size, type: file.type, content: null };
-    if (isText) {
-      att.content = await readFileAsText(file);
-    } else if (file.type.startsWith('image/')) {
-      att.content = '[image attached: ' + file.name + ']';
-    } else {
-      att.content = '[file attached: ' + file.name + ']';
-    }
+    if (isText) att.content = await readFileAsText(file);
+    else if (file.type.startsWith('image/')) att.content = '[image attached: ' + file.name + ']';
+    else att.content = '[file attached: ' + file.name + ']';
     state.attachments.push(att);
     paintAttachments();
   }
@@ -423,7 +389,7 @@ export default async function init({ root, module }) {
     if (state.sending) { toast('Already sending'); return; }
     const text = elInput.value.trim();
     if (!text && state.attachments.length === 0) { toast('Type a message'); return; }
-    if (!AI.hasAnyKey()) { showNoKeyHelp(); return; }
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
 
     let userText = text;
     if (state.attachments.length) {
@@ -431,26 +397,22 @@ export default async function init({ root, module }) {
       userText = (userText || '(see attachments)') + att;
     }
 
-    // Add user message
     const userMsg = { role: 'user', content: userText, ts: Date.now() };
     state.history.push(userMsg);
     saveHistory();
     appendBubble(userMsg);
 
-    // Reset input
     elInput.value = '';
     state.attachments = [];
     paintAttachments();
     autoresize();
 
-    // Build conversation
     const sysKey = state.lang === 'english' ? 'chat_english_only' : state.lang === 'hindi' ? 'chat_hindi_only' : 'chat_default';
     const conv = [
       { role: 'system', content: prompts[sysKey] || prompts.chat_default || '' },
       ...state.history.slice(-20).map(m => ({ role: m.role, content: m.content }))
     ];
 
-    // Typing indicator
     state.sending = true;
     refreshStatus();
     const typingEl = appendTyping();
@@ -458,9 +420,8 @@ export default async function init({ root, module }) {
     try {
       const r = await AI.chat(conv, { temperature: 0.6, maxTokens: 900 });
       typingEl.remove();
-      const botMsg = { role: 'assistant', content: r.text, ts: Date.now(), provider: r.provider };
+      const botMsg = { role: 'assistant', content: r.text, ts: Date.now(), route: r.route };
       state.history.push(botMsg);
-      // Trim to history max
       const max = opts.historyMax || 50;
       if (state.history.length > max) state.history = state.history.slice(-max);
       saveHistory();
@@ -480,16 +441,17 @@ export default async function init({ root, module }) {
   /* ─── Render helpers ─── */
 
   function paintLang() {
-    $$('.chip[data-lang]', root).forEach(b => {
-      b.classList.toggle('on', b.dataset.lang === state.lang);
-    });
+    $$('.chip[data-lang]', root).forEach(b => b.classList.toggle('on', b.dataset.lang === state.lang));
+  }
+
+  function paintWelcome() {
+    elStream.innerHTML = renderWelcome();
+    const cta = document.getElementById('welcome-cta-btn');
+    if (cta) cta.addEventListener('click', showNoRouteHelp);
   }
 
   function paintHistory() {
-    if (state.history.length === 0) {
-      paintWelcome();
-      return;
-    }
+    if (state.history.length === 0) { paintWelcome(); return; }
     elStream.innerHTML = '';
     for (const m of state.history) appendBubble(m, false);
     scrollBottom();
@@ -501,7 +463,7 @@ export default async function init({ root, module }) {
     wrap.dataset.ts = m.ts;
     wrap.innerHTML = `
       <div class="bubble-meta">
-        <span>${m.role === 'user' ? 'YOU' : (m.provider ? m.provider.toUpperCase() : 'GRAMMAR.AI')}</span>
+        <span>${m.role === 'user' ? 'YOU' : (m.route ? m.route.toUpperCase() : 'GRAMMAR.AI')}</span>
         <span>${esc(timeAgo(m.ts))}</span>
       </div>
       <div class="bubble-body">${renderMd(m.content)}</div>
@@ -533,17 +495,17 @@ export default async function init({ root, module }) {
     const greet = state.lang === 'hindi' ? 'नमस्ते! ग्रामर सीखने के लिए तैयार?'
                 : state.lang === 'english' ? "Hi! Ready to learn some grammar?"
                 : 'Namaste! Ready to learn some grammar?';
-    const tip = 'Tap a chip below or type a question. Long messages, voice, attachments — all supported.';
-    const noKey = !AI.hasAnyKey();
+    const tip = 'Tap a chip above or type a question. Long messages, voice, attachments — all supported.';
+    const noRoute = !AI.hasAnyRoute();
     return `
       <div class="welcome frame subtle">
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="kicker"><span>WELCOME</span><span class="${noKey ? 'rust' : 'lime'}">● ${noKey ? 'NEEDS KEY' : 'READY'}</span></div>
+        <div class="kicker"><span>WELCOME</span><span class="${noRoute ? 'rust' : 'lime'}">● ${noRoute ? 'NEEDS SETUP' : 'READY'}</span></div>
         <div class="welcome-greet serif">${esc(greet)}</div>
         <div class="welcome-tip mono">${esc(tip)}</div>
-        ${noKey ? `
-          <div class="welcome-cta mono" id="welcome-cta">
-            <span>⚠ Add a free API key once to start chatting.</span>
+        ${noRoute ? `
+          <div class="welcome-cta mono">
+            <span>⚠ Set up an AI route once to start chatting.</span>
             <button class="btn btn-primary btn-icon" id="welcome-cta-btn">⚙ SETUP</button>
           </div>` : ''}
       </div>
@@ -552,26 +514,21 @@ export default async function init({ root, module }) {
 
   function scrollBottom() {
     requestAnimationFrame(() => {
-      elStream.scrollTop = elStream.scrollHeight;
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      if (elStreamWrap) elStreamWrap.scrollTop = elStreamWrap.scrollHeight;
     });
   }
 
   function refreshStatus() {
     const max = opts.historyMax || 50;
     if (elHistL) elHistL.textContent = `HISTORY ${state.history.length}/${max}`;
-    if (elModelL) elModelL.textContent = `MULTI-AI · ${state.lang.toUpperCase()}`;
+    if (elModelL) {
+      const route = AI.hasWorker() && AI.getMode() !== 'direct-only' ? 'WORKER' : 'DIRECT';
+      elModelL.textContent = `${route} · ${state.lang.toUpperCase()}`;
+    }
     if (elStatus) {
-      if (state.sending) {
-        elStatus.textContent = '● THINKING';
-        elStatus.className = 'lime';
-      } else if (!AI.hasAnyKey()) {
-        elStatus.textContent = '● NO KEY';
-        elStatus.className = 'rust';
-      } else {
-        elStatus.textContent = '● READY';
-        elStatus.className = 'lime';
-      }
+      if (state.sending) { elStatus.textContent = '● THINKING'; elStatus.className = 'lime'; }
+      else if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
+      else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
     }
   }
 
@@ -593,10 +550,7 @@ export default async function init({ root, module }) {
     downloadFile(`grammar-ai-chat-${ts}.txt`, lines, 'text/plain');
   }
 
-  /* Render initial history if any */
-  if (state.history.length > 0) paintHistory();
-
-  /* Return the controller object */
+  /* Return controller */
   return {
     onShow() { refreshStatus(); scrollBottom(); },
     onHide() {}

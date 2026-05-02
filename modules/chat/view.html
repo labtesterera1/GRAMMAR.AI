@@ -1,78 +1,77 @@
-<div class="page-inner chat">
+<div class="chat-shell">
 
-  <!-- Header -->
-  <div class="kicker">
-    <span data-bind="moduleNum">MOD 01 / CHAT</span>
-    <span class="lime" data-bind="status">● ONLINE</span>
-  </div>
-  <div class="headline">Chat</div>
-  <div class="subline">
-    <span data-bind="modelLine">MULTI-AI · BILINGUAL</span>
-    <span data-bind="historyLine">HISTORY 0/50</span>
-  </div>
-  <div class="ticks">
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-  </div>
+  <!-- Header zone -->
+  <div class="chat-head">
+    <div class="page-inner">
+      <div class="kicker">
+        <span data-bind="moduleNum">MOD 01 / CHAT</span>
+        <span class="lime" data-bind="status">● ONLINE</span>
+      </div>
+      <div class="headline">Chat</div>
+      <div class="subline">
+        <span data-bind="modelLine">MULTI-AI · BILINGUAL</span>
+        <span data-bind="historyLine">HISTORY 0/50</span>
+      </div>
+      <div class="ticks">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
 
-  <!-- Language mode chips -->
-  <div class="lang-chips" role="tablist">
-    <button class="chip"    data-lang="bilingual">EN+HI</button>
-    <button class="chip on" data-lang="english">EN</button>
-    <button class="chip"    data-lang="hindi">HI</button>
+      <div class="lang-chips">
+        <button class="chip"    data-lang="bilingual">EN+HI</button>
+        <button class="chip on" data-lang="english">EN</button>
+        <button class="chip"    data-lang="hindi">HI</button>
+        <span class="flex-1"></span>
+        <button class="chip" id="chat-export" title="Export chat">⬇</button>
+        <button class="chip" id="chat-history-clear" title="Clear history">↺</button>
+      </div>
 
-    <span class="flex-1"></span>
-
-    <button class="chip" id="chat-export" title="Export chat">⬇</button>
-    <button class="chip" id="chat-history-clear" title="Clear history">↺</button>
-  </div>
-
-  <!-- Quick chips (slot, populated by controller) -->
-  <div class="quick-chips" id="quick-chips"></div>
-
-  <!-- Messages stream -->
-  <div class="msg-stream" id="msg-stream" aria-live="polite">
-    <!-- Welcome message rendered by controller -->
-  </div>
-
-  <!-- Composer -->
-  <div class="composer">
-    <!-- Textarea -->
-    <textarea
-      class="composer-input"
-      id="composer-input"
-      placeholder="Ask a grammar question…"
-      rows="1"
-      aria-label="Message"></textarea>
-
-    <!-- Toolbar — universal pattern: B / H / ◐ / 👁 / aA / 📖 / ⧉  +  📎 🎤 ✨ 🌐 🗑 ↺ -->
-    <div class="toolbar" role="toolbar" aria-label="Editor">
-      <!-- Format group -->
-      <button class="toolbar-btn" data-tool="bold"      title="Bold (**text**)"><b>B</b></button>
-      <button class="toolbar-btn" data-tool="heading"   title="Heading">H</button>
-      <button class="toolbar-btn" data-tool="highlight" title="Highlight">◐</button>
-      <button class="toolbar-btn" data-tool="preview"   title="Preview formatted">👁</button>
-      <button class="toolbar-btn" data-tool="case"      title="Toggle case">aA</button>
-      <button class="toolbar-btn" data-tool="dictionary" title="Look up word">📖</button>
-      <button class="toolbar-btn" data-tool="duplicate" title="Duplicate line">⧉</button>
+      <div class="quick-chips" id="quick-chips"></div>
     </div>
-    <div class="toolbar toolbar-2" role="toolbar" aria-label="Actions">
-      <!-- Action group -->
-      <button class="toolbar-btn" data-tool="attach"    title="Attach file">📎</button>
-      <button class="toolbar-btn" data-tool="voice"     title="Voice input">🎤</button>
-      <button class="toolbar-btn" data-tool="improve"   title="AI improve grammar">✨</button>
-      <button class="toolbar-btn" data-tool="translate" title="Translate EN ↔ HI">🌐</button>
-      <button class="toolbar-btn danger" data-tool="clear-input" title="Clear input">🗑</button>
-      <button class="toolbar-btn"  data-tool="send" title="Send">▸</button>
-    </div>
-
-    <!-- Attachment chips (file references) -->
-    <div class="attach-bar" id="attach-bar"></div>
   </div>
 
-  <!-- Hidden file input -->
+  <!-- Message stream (scrolls independently) -->
+  <div class="chat-stream-wrap">
+    <div class="page-inner chat-stream-inner">
+      <div class="msg-stream" id="msg-stream" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Composer zone (separate, anchored at bottom of chat) -->
+  <div class="chat-composer">
+    <div class="page-inner">
+      <div class="attach-bar" id="attach-bar"></div>
+      <textarea
+        class="composer-input"
+        id="composer-input"
+        placeholder="Ask a grammar question…"
+        rows="1"
+        aria-label="Message"></textarea>
+
+      <!-- Format toolbar: B / H / ◐ / 👁 / aA / 📖 / ⧉ -->
+      <div class="toolbar" role="toolbar" aria-label="Format">
+        <button class="toolbar-btn" data-tool="bold"      title="Bold (**text**)"><b>B</b></button>
+        <button class="toolbar-btn" data-tool="heading"   title="Heading">H</button>
+        <button class="toolbar-btn" data-tool="highlight" title="Highlight">◐</button>
+        <button class="toolbar-btn" data-tool="preview"   title="Preview formatted">👁</button>
+        <button class="toolbar-btn" data-tool="case"      title="Toggle case">aA</button>
+        <button class="toolbar-btn" data-tool="dictionary" title="Dictionary lookup">📖</button>
+        <button class="toolbar-btn" data-tool="duplicate" title="Duplicate line">⧉</button>
+      </div>
+      <!-- Action toolbar: 📎 🎤 ✨ 🌐 🗑 ▸ -->
+      <div class="toolbar toolbar-2" role="toolbar" aria-label="Actions">
+        <button class="toolbar-btn" data-tool="attach"    title="Attach file">📎</button>
+        <button class="toolbar-btn" data-tool="voice"     title="Voice input">🎤</button>
+        <button class="toolbar-btn" data-tool="improve"   title="AI improve grammar">✨</button>
+        <button class="toolbar-btn" data-tool="translate" title="Translate EN ↔ HI">🌐</button>
+        <button class="toolbar-btn danger" data-tool="clear-input" title="Clear input">🗑</button>
+        <button class="toolbar-btn send-btn" data-tool="send" title="Send (Enter)">▸</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="file-input" hidden />
 </div>

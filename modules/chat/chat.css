@@ -1,25 +1,83 @@
 /* ────────────────────────────────────────────────────────────────
-   CHAT MODULE STYLES
+   CHAT MODULE · v1.1.0
+   Layout: flex column with separate header / stream / composer.
+   Stream scrolls independently — composer never overlaps content.
    ──────────────────────────────────────────────────────────────── */
 
-.module-chat .page-inner.chat { padding-bottom: 16px; }
+/* Override default page padding (we want a flex layout) */
+#page-module-chat { padding-bottom: 0; display: none; }
+#page-module-chat.active { display: flex; flex-direction: column; }
+
+.module-chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── Header zone ─── */
+.chat-head {
+  flex-shrink: 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.chat-head .page-inner {
+  padding: 16px 16px 14px;
+}
+
+/* ─── Stream zone (the scrollable area) ─── */
+.chat-stream-wrap {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+.chat-stream-inner {
+  padding: 16px 16px;
+}
+.msg-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── Composer zone ─── */
+.chat-composer {
+  flex-shrink: 0;
+  border-top: 0.5px solid var(--border);
+  background: var(--bg);
+  padding-bottom: calc(var(--bnav-h) + env(safe-area-inset-bottom, 0px));
+}
+.chat-composer .page-inner {
+  padding: 12px 16px 14px;
+}
 
 /* Lang chips row */
 .lang-chips {
   display: flex;
   gap: 6px;
-  margin-top: 16px;
+  margin-top: 14px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Quick chips */
 .quick-chips {
   display: flex;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+.quick-chips::-webkit-scrollbar { display: none; }
 .quick-chip {
   flex-shrink: 0;
   font-family: var(--mono);
@@ -40,10 +98,9 @@
 /* Welcome card */
 .welcome {
   padding: 18px 16px;
-  margin-top: 14px;
 }
 .welcome-greet {
-  font-size: 22px;
+  font-size: 24px;
   margin-top: 8px;
   color: var(--text);
 }
@@ -65,21 +122,14 @@
   font-size: 11px;
   color: var(--rust);
   letter-spacing: 0.04em;
+  flex-wrap: wrap;
 }
 .welcome-cta .btn { padding: 8px 14px; font-size: 10px; flex-shrink: 0; }
-
-/* Message stream */
-.msg-stream {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 14px;
-}
 
 /* Bubbles */
 .bubble {
   position: relative;
-  max-width: 90%;
+  max-width: 92%;
   padding: 10px 12px 8px;
   border: 0.5px solid var(--border);
   background: var(--surface);
@@ -91,7 +141,7 @@
 .bubble-user {
   align-self: flex-end;
   border-color: var(--lime-dim);
-  background: rgba(212,255,58,0.04);
+  background: rgba(212,255,58,0.05);
 }
 .bubble-assistant { align-self: flex-start; }
 .bubble-err { border-color: var(--rust-dim); background: rgba(201,122,90,0.06); color: var(--rust); }
@@ -130,10 +180,9 @@
   padding-left: 4px;
   margin: 2px 0;
 }
-
 .bubble-actions {
   display: flex;
-  gap: 4px;
+  gap: 0;
   margin-top: 8px;
   border-top: 0.5px solid var(--border);
   padding-top: 6px;
@@ -163,12 +212,6 @@
 }
 
 /* Composer */
-.composer {
-  margin-top: 16px;
-  position: sticky;
-  bottom: calc(var(--bnav-h) + 8px);
-  z-index: 10;
-}
 .composer-input {
   width: 100%;
   background: var(--surface);
@@ -188,24 +231,23 @@
 
 .toolbar { background: var(--bg); }
 .toolbar-2 { border-top: none; background: var(--surface); }
-.toolbar-2 [data-tool="send"] {
+.toolbar-2 .send-btn {
   background: var(--lime);
   color: var(--bg);
   font-weight: 500;
 }
-.toolbar-2 [data-tool="send"]:hover {
+.toolbar-2 .send-btn:hover {
   background: var(--lime);
   color: var(--bg);
   filter: brightness(1.1);
 }
 
-/* Attachment chips */
+/* Attachments */
 .attach-bar:not(:empty) {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-top: 8px;
-  padding: 6px 0;
+  margin-bottom: 8px;
 }
 .attach-chip {
   display: inline-flex;
@@ -254,10 +296,7 @@
   line-height: 1.55;
   margin-bottom: 4px;
 }
-.dict-num {
-  color: var(--muted);
-  flex-shrink: 0;
-}
+.dict-num { color: var(--muted); flex-shrink: 0; }
 .dict-ex {
   font-size: 13px;
   color: var(--muted);
@@ -278,3 +317,28 @@
 .preview-body strong { color: var(--lime); font-weight: 500; }
 .preview-body em { font-style: italic; }
 .preview-body mark { background: var(--lime); color: var(--bg); padding: 0 3px; }
+
+/* ────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ──────────────────────────────────────────────────────────────── */
+
+@media (min-width: 700px) {
+  .chat-head .page-inner { padding: 22px 24px 18px; }
+  .chat-stream-inner { padding: 22px 24px; }
+  .chat-composer .page-inner { padding: 14px 24px 18px; }
+  .bubble { max-width: 80%; padding: 12px 14px 10px; font-size: 13px; }
+}
+
+@media (min-width: 1024px) {
+  /* On desktop: bottom nav is hidden, so no extra padding needed */
+  .chat-composer { padding-bottom: 0; }
+  .chat-head .page-inner,
+  .chat-stream-inner,
+  .chat-composer .page-inner {
+    padding-left: 32px;
+    padding-right: 32px;
+    max-width: var(--content-w);
+  }
+  .bubble { max-width: 70%; font-size: 14px; line-height: 1.6; }
+  .composer-input { font-size: 14px; padding: 14px 16px; min-height: 50px; }
+}
