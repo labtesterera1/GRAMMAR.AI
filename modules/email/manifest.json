@@ -1,0 +1,17 @@
+{
+  "id": "email",
+  "name": "Email",
+  "version": "1.0.0",
+  "description": "Email correction with 5 types and 3 output styles (corrected/improved/polished).",
+  "icon": "✉️",
+  "options": {
+    "types": [
+      { "key": "professional", "label": "Professional" },
+      { "key": "casual",       "label": "Casual" },
+      { "key": "formal",       "label": "Formal" },
+      { "key": "apology",      "label": "Apology" },
+      { "key": "followup",     "label": "Follow-up" }
+    ],
+    "defaultType": "professional"
+  }
+}
