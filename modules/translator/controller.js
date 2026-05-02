@@ -2,7 +2,7 @@
    TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -37,10 +37,23 @@ export default async function init({ root, module }) {
   const elCopy    = $('#tr-copy', root);
   const elDl      = $('#tr-download', root);
   const elHist    = $('#tr-history', root);
+  const elSendOut = $('#tr-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elHL      = root.querySelector('[data-bind="historyLine"]');
+
+  function showSendOut() {
+    if (!state.output || !elSendOut) return;
+    elSendOut.classList.remove('hide');
+    const v = '1.2.1';
+    const d = new Date().toISOString().slice(0,10);
+    mountSendOut(
+      elSendOut,
+      () => state.output,
+      () => `Grammar.AI_v${v}_Translator-${state.direction}_${d}`
+    );
+  }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
@@ -62,6 +75,7 @@ export default async function init({ root, module }) {
   if (state.output) {
     elOutput.textContent = state.output;
     elOutput.classList.remove('placeholder');
+    showSendOut();
   }
   refreshStatus();
   refreshHist();
@@ -161,6 +175,7 @@ export default async function init({ root, module }) {
       elOutput.textContent = r.text;
       state.output = r.text;
       SCOPE.set('output', state.output);
+      showSendOut();
 
       // Push to history
       state.history.unshift({
