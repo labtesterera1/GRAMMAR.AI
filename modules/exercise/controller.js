@@ -123,6 +123,18 @@ export default async function init({ root, module }) {
   });
   elTDl.addEventListener('click', downloadTenseExercise);
 
+  // Tense CLEAR
+  $('#tense-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear tense exercise?')) return;
+    state.selectedTense = ''; state.tenseData = null; state.tenseShowAns = false;
+    SCOPE.set('selectedTense', ''); SCOPE.set('tenseData', null);
+    $$('[data-tense]', elTGrid).forEach(x => x.classList.remove('sel'));
+    elTGo.disabled = true; elTToggle.disabled = true; elTDl.disabled = true;
+    elTQs.classList.add('hide'); elTAs.classList.add('hide');
+    if (elTenseSendOut) { elTenseSendOut.classList.add('hide'); elTenseSendOut.innerHTML = ''; }
+    toast('Cleared', 'success');
+  });
+
   async function genTenseExercise() {
     if (!state.selectedTense) { toast('Select a tense first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
@@ -216,6 +228,13 @@ export default async function init({ root, module }) {
   }
 
   elFGo.addEventListener('click', genFlashcards);
+  $('#flash-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear flashcards?')) return;
+    state.flashCards = []; state.flashIdx = 0; state.flashFlipped = false; state.flashKnown = 0;
+    SCOPE.set('flashCards', []); SCOPE.set('flashKnown', 0);
+    elFArea.classList.add('hide');
+    toast('Cleared', 'success');
+  });
   elFCard.addEventListener('click', flipFlash);
   elFNo.addEventListener('click', () => markFlash(false));
   elFYes.addEventListener('click', () => markFlash(true));
@@ -336,6 +355,12 @@ export default async function init({ root, module }) {
   if (state.vocabData) renderVocab(state.vocabData);
 
   elVGo.addEventListener('click', genVocab);
+  $('#vocab-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear vocabulary list?')) return;
+    state.vocabData = null; SCOPE.set('vocabData', null);
+    elVList.innerHTML = ''; elVDl.disabled = true;
+    toast('Cleared', 'success');
+  });
   elVLevel.addEventListener('change', () => {
     state.vocabLevel = elVLevel.value;
     SCOPE.set('vocabLevel', state.vocabLevel);
@@ -418,6 +443,13 @@ export default async function init({ root, module }) {
   if (state.storyData) renderStory(state.storyData);
 
   elSGo.addEventListener('click', genStory);
+  $('#story-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear story?')) return;
+    state.storyData = null; SCOPE.set('storyData', null);
+    elSCard.classList.add('hide'); elSDl.disabled = true; elSCopy.disabled = true;
+    if (elStorySendOut) { elStorySendOut.classList.add('hide'); elStorySendOut.innerHTML = ''; }
+    toast('Cleared', 'success');
+  });
   elSTopic.addEventListener('change', () => {
     state.storyTopic = elSTopic.value;
     SCOPE.set('storyTopic', state.storyTopic);
