@@ -1,24 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "build": "2026.05.03",
   "channel": "stable",
   "history": [
     {
+      "version": "1.3.4",
+      "date": "2026-05-03",
+      "notes": "Deep toolbar fixes: color picker saves selection before sheet opens (mobile focus-loss bug), regex uses [\\s\\S]*? for multiline color spans, wrapColor position math fixed, note cards render color tags, Notes filter chip 📅→📓."
+    },
+    {
       "version": "1.3.3",
       "date": "2026-05-03",
-      "notes": "Toolbar: 🎨 color picker added (4 highlight + 4 text color). Notes: Daily Journal icon fixed to 📓 (Android-safe). Notes editor: CANCEL button on new and edit. All modules: ← HOME back button in kicker row."
-    },
-    {
-      "version": "1.3.2",
-      "date": "2026-05-03",
-      "notes": "Rewrite: per-card Download + Download All. Notes: Aa casual mode toggle. Mono confirmed all INPUT/OUTPUT."
-    },
-    {
-      "version": "1.3.1",
-      "date": "2026-05-03",
-      "notes": "Module 08: Rewrite — 5-card rewriter, Paragraph/Sentence mode, READ MODE, SEND OUT."
+      "notes": "🎨 color picker, Notes 📓 icon, CANCEL button, ← HOME back button all modules."
     }
   ]
 }
