@@ -8,7 +8,7 @@
     "passwordLength": 6,
     "noteTypes": [
       { "key": "quick", "label": "⚡ Quick Note",     "icon": "⚡" },
-      { "key": "daily", "label": "📅 Daily Journal",  "icon": "📅" },
+      { "key": "daily", "label": "📓 Daily Journal",  "icon": "📓" },
       { "key": "study", "label": "📚 Study Note",     "icon": "📚" }
     ],
     "tags": [

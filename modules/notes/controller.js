@@ -249,7 +249,7 @@ export default async function init({ root, module }) {
     }
     elNotesEmpty.classList.add('hide');
 
-    const typeIcons = { quick: '⚡', daily: '📅', study: '📚' };
+    const typeIcons = { quick: '⚡', daily: '📓', study: '📚' };
     elNotesList.innerHTML = notes.map(n => {
       const preview = (n.content || '').slice(0, 280);
       const isLong  = (n.content || '').length > 200;
@@ -323,7 +323,7 @@ export default async function init({ root, module }) {
     const d = state.notes.filter(n => n.type === 'daily').length;
     const s = state.notes.filter(n => n.type === 'study').length;
     if (elStatsLine) {
-      elStatsLine.textContent = `${total} NOTE${total !== 1 ? 'S' : ''} · ⚡${q} 📅${d} 📚${s}`;
+      elStatsLine.textContent = `${total} NOTE${total !== 1 ? 'S' : ''} · ⚡${q} 📓${d} 📚${s}`;
     }
   }
 
@@ -406,6 +406,7 @@ export default async function init({ root, module }) {
         </div>
 
         <div class="row gap-12 mt-12">
+          <button class="btn flex-1" id="ed-cancel">CANCEL</button>
           <button class="btn btn-primary flex-1" id="ed-save">💾 SAVE NOTE</button>
           ${n ? `<button class="btn btn-rust" id="ed-delete">🗑</button>` : ''}
         </div>
@@ -509,6 +510,11 @@ export default async function init({ root, module }) {
       }
 
       // Save
+      document.getElementById('ed-cancel')?.addEventListener('click', () => {
+        closeSheet();
+        state.editingId = null;
+      });
+
       document.getElementById('ed-save')?.addEventListener('click', () => {
         const title   = edTitle?.value.trim() || '';
         const content = edContent?.value.trim() || '';
@@ -611,7 +617,7 @@ export default async function init({ root, module }) {
     const notes = type === 'all' ? [...state.notes] : state.notes.filter(n => n.type === type);
     if (!notes.length) { toast('No notes in this category'); return; }
     notes.sort((a, b) => b.updatedAt - a.updatedAt);
-    const typeIcons = { quick:'⚡ QUICK NOTE', daily:'📅 DAILY JOURNAL', study:'📚 STUDY NOTE' };
+    const typeIcons = { quick:'⚡ QUICK NOTE', daily:'📓 DAILY JOURNAL', study:'📚 STUDY NOTE' };
     let txt = `MY NOTES — Grammar.AI\n${'='.repeat(50)}\n`;
     txt += `Filter: ${labels[type]}\n`;
     txt += `Exported: ${new Date().toLocaleString('en-IN')}\n`;
