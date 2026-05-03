@@ -2,7 +2,7 @@
    PARAGRAPH MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -44,13 +44,14 @@ export default async function init({ root, module }) {
   function showSendOut() {
     if (!state.lastOutput || !elSendOut) return;
     elSendOut.classList.remove('hide');
-    const v = '1.2.1';
-    const d = new Date().toISOString().slice(0,10);
-    mountSendOut(
-      elSendOut,
-      () => state.lastOutput,
-      () => `Grammar.AI_v${v}_Paragraph_${d}`
-    );
+    mountSendOut(elSendOut, {
+      module: 'PARAGRAPH',
+      code: 'PA',
+      items: [
+        { key: 'input',  label: 'INPUT',  getContent: () => state.draft },
+        { key: 'output', label: 'OUTPUT', getContent: () => state.lastOutput, default: true }
+      ]
+    });
   }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
@@ -122,8 +123,7 @@ export default async function init({ root, module }) {
 
   elDl.addEventListener('click', () => {
     if (!state.lastOutput) { toast('Nothing to download yet'); return; }
-    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    downloadFile(`paragraph-${ts}.txt`, state.lastOutput, 'text/plain');
+    downloadFile(gFileName('PARAGRAPH', 'PA'), state.lastOutput, 'text/plain');
   });
 
   function showNoRouteHelp() {
