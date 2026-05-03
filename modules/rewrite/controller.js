@@ -55,6 +55,7 @@ export default async function init({ root, module }) {
   const elCards    = $('#rw-cards', root);
   const elSendOut  = $('#rw-sendout', root);
   const elRoute    = $('#rw-route', root);
+  const elDlAll    = $('#rw-dl-all', root);
   const elWC       = $('#rw-wc', root);
   const elModeHint = $('#rw-mode-hint', root);
   const elModNum   = root.querySelector('[data-bind="moduleNum"]');
@@ -69,6 +70,15 @@ export default async function init({ root, module }) {
   paintModeUI();
   refreshStatus();
   if (state.results) renderCards(state.results, '(restored)');
+
+  /* ─── Download All ─── */
+  if (elDlAll) {
+    elDlAll.addEventListener('click', () => {
+      if (!state.results) { toast('Generate rewrites first'); return; }
+      downloadFile(gFileName('REWRITE', 'RW'), buildAllText(state.results), 'text/plain');
+      toast('Downloaded', 'success');
+    });
+  }
 
   /* ─── Toolbar — no voice ─── */
   elTbMount.innerHTML = renderToolbarHTML();
@@ -219,18 +229,25 @@ Return ONLY the JSON object.`;
         </div>
         <div class="rw-card-body" id="rwtext-${esc(rw.key)}">${esc(data[rw.key] || '')}</div>
         <div class="rw-card-actions">
-          <button class="rw-act" data-act="copy"  data-key="${esc(rw.key)}">⧉ COPY</button>
-          <button class="rw-act" data-act="use"   data-key="${esc(rw.key)}">↩ USE THIS</button>
-          <button class="rw-act" data-act="speak" data-key="${esc(rw.key)}">🔊 SPEAK</button>
+          <button class="rw-act" data-act="copy"     data-key="${esc(rw.key)}">⧉ COPY</button>
+          <button class="rw-act" data-act="use"      data-key="${esc(rw.key)}">↩ USE THIS</button>
+          <button class="rw-act" data-act="download" data-key="${esc(rw.key)}">⬇ SAVE</button>
+          <button class="rw-act" data-act="speak"    data-key="${esc(rw.key)}">🔊 SPEAK</button>
         </div>
       </div>
     `).join('');
 
     /* Wire card actions */
     $$('.rw-act[data-act="copy"]', elCards).forEach(b => {
+      b.addEventListener('click', () => copyToClipboard(data[b.dataset.key] || ''));
+    });
+    $$('.rw-act[data-act="download"]', elCards).forEach(b => {
       b.addEventListener('click', () => {
         const text = data[b.dataset.key] || '';
-        copyToClipboard(text);
+        if (!text) return;
+        const rw = REWRITES.find(r => r.key === b.dataset.key);
+        downloadFile(gFileName('REWRITE', 'RW'), text, 'text/plain');
+        toast('Downloaded', 'success');
       });
     });
     $$('.rw-act[data-act="use"]', elCards).forEach(b => {
