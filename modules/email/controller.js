@@ -2,7 +2,7 @@
    EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -45,14 +45,16 @@ export default async function init({ root, module }) {
   function showSendOut() {
     if (!state.last?.polished || !elSendOut) return;
     elSendOut.classList.remove('hide');
-    const v = '1.2.1';
-    const d = new Date().toISOString().slice(0,10);
-    const subj = (state.subject || 'email').replace(/[^a-z0-9]+/gi,'-').slice(0,20);
-    mountSendOut(
-      elSendOut,
-      () => `Subject: ${state.subject || ''}\n\n${state.last?.polished || ''}`,
-      () => `Grammar.AI_v${v}_Email-${subj}_${d}`
-    );
+    mountSendOut(elSendOut, {
+      module: 'EMAIL',
+      code: 'EM',
+      items: [
+        { key: 'input',     label: 'INPUT',          getContent: () => `Subject: ${state.subject || ''}\n\n${state.body || ''}` },
+        { key: 'corrected', label: 'CORRECTED v1',   getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.corrected || ''}` },
+        { key: 'improved',  label: 'IMPROVED v2',    getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.improved || ''}` },
+        { key: 'polished',  label: 'POLISHED v3',    getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.polished || ''}`, default: true }
+      ]
+    });
   }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
@@ -151,10 +153,7 @@ export default async function init({ root, module }) {
     const k = b.dataset.dl;
     const v = state.last?.[k];
     if (!v) { toast('Run analyze first'); return; }
-    const ver = '1.2.3';
-    const d   = new Date().toISOString().slice(0,10);
-    const subj = (state.subject || 'email').replace(/[^a-z0-9]+/gi,'-').slice(0,20);
-    downloadFile(`Grammar.AI_v${ver}_Email-${k}-${subj}_${d}.txt`, `Subject: ${state.subject || ''}\n\n${v}`, 'text/plain');
+    downloadFile(gFileName('EMAIL', 'EM'), `Subject: ${state.subject || ''}\n\n${v}`, 'text/plain');
   }));
 
   function showNoRouteHelp() {
