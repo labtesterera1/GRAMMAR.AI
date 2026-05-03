@@ -3,8 +3,24 @@
    ──────────────────────────────────────────────────────────────── */
 
 import { esc } from './ui.js';
+import { go } from './router.js';
 
 let _modules = [];
+
+/* ─── Inject ← HOME back button into module kicker rows ─── */
+function injectBackButton(root) {
+  const kickers = root.querySelectorAll('.kicker');
+  kickers.forEach(k => {
+    // Only inject once and only into module kickers (not sheets)
+    if (k.querySelector('.back-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'back-btn';
+    btn.title = 'Back to Home';
+    btn.innerHTML = '← HOME';
+    btn.addEventListener('click', () => go('home'));
+    k.insertBefore(btn, k.firstChild);
+  });
+}
 
 export async function loadModulesConfig() {
   const r = await fetch('config/modules.json');
@@ -52,6 +68,9 @@ export async function mountModule(id, host) {
     root.innerHTML = viewHtml;
     host.innerHTML = '';
     host.appendChild(root);
+
+    // Inject ← HOME into every kicker row after mount
+    injectBackButton(root);
 
     const factory = ctrlMod.default || ctrlMod.init;
     const ctrl = factory ? (await factory({ root, module: mod })) || {} : {};

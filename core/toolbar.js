@@ -10,7 +10,21 @@
 
 import { $, $$, esc, toast, openSheet, closeSheet } from './ui.js';
 
-/* ─── Emoji categories ─── */
+/* ─── Color definitions ─── */
+const COLORS = {
+  highlight: [
+    { key: 'hl-yellow', label: 'Yellow',  tag: '[[hl-yellow]]',  css: '#f5e642', bg: '#f5e642', fg: '#000' },
+    { key: 'hl-blue',   label: 'Blue',    tag: '[[hl-blue]]',    css: '#42a8f5', bg: '#42a8f5', fg: '#fff' },
+    { key: 'hl-green',  label: 'Green',   tag: '[[hl-green]]',   css: '#42f57e', bg: '#42f57e', fg: '#000' },
+    { key: 'hl-pink',   label: 'Pink',    tag: '[[hl-pink]]',    css: '#f542b0', bg: '#f542b0', fg: '#fff' }
+  ],
+  text: [
+    { key: 'tx-lime',   label: 'Lime',    tag: '[[tx-lime]]',    css: '#d4ff3a', fg: '#d4ff3a' },
+    { key: 'tx-red',    label: 'Red',     tag: '[[tx-red]]',     css: '#c97a5a', fg: '#c97a5a' },
+    { key: 'tx-blue',   label: 'Blue',    tag: '[[tx-blue]]',    css: '#42a8f5', fg: '#42a8f5' },
+    { key: 'tx-muted',  label: 'Muted',   tag: '[[tx-muted]]',   css: '#8a8479', fg: '#8a8479' }
+  ]
+};
 const EMOJIS = {
   'Faces':   ['😊','😂','🤔','😍','😎','🥺','😅','🙏','😇','🤩','😆','😴','🤗','😬','🫡'],
   'Gestures':['👋','👍','👎','✌️','🤞','👏','🙌','🫶','💪','🤝','☝️','👉','💯','✅','❌'],
@@ -27,6 +41,7 @@ export function renderToolbarHTML() {
       <button class="toolbar-btn" data-tool="preview"    title="Preview formatted">👁</button>
       <button class="toolbar-btn" data-tool="case"       title="Toggle case — cycles word or selection">aA</button>
       <button class="toolbar-btn" data-tool="emoji"      title="Emoji picker">😊</button>
+      <button class="toolbar-btn" data-tool="color"      title="Color — highlight & text color">🎨</button>
       <button class="toolbar-btn" data-tool="dictionary" title="Dictionary — looks up word at cursor">📖</button>
       <button class="toolbar-btn" data-tool="duplicate"  title="Duplicate current line">⧉</button>
     </div>
@@ -44,6 +59,17 @@ export function renderToolbarHTML() {
 /** Markdown-lite preview renderer */
 function renderMd(s) {
   let html = esc(s);
+  // Color highlight tags: [[hl-yellow]]text[[/]]
+  html = html.replace(/\[\[hl-yellow\]\](.*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-blue\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-green\]\](.*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-pink\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
+  // Text color tags: [[tx-lime]]text[[/]]
+  html = html.replace(/\[\[tx-lime\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
+  html = html.replace(/\[\[tx-red\]\](.*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
+  html = html.replace(/\[\[tx-blue\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
+  html = html.replace(/\[\[tx-muted\]\](.*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
+  // Standard markdown
   html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
@@ -285,7 +311,78 @@ export function mountToolbar(root, cfg) {
     }, 60);
   }
 
-  /* ─── Voice ─── */
+  /* ─── Color picker ─── */
+  function openColorPicker() {
+    openSheet(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-inner">
+        <div class="kicker"><span>COLOR</span><span class="lime">HIGHLIGHT + TEXT</span></div>
+        <div class="sheet-title">Color picker</div>
+
+        <div class="s-ttl" style="margin-top:0;"><span>HIGHLIGHT</span></div>
+        <div class="color-swatches" id="cp-hl">
+          ${COLORS.highlight.map(c => `
+            <button class="color-swatch" data-ckey="${esc(c.key)}" data-ctype="highlight"
+              style="background:${esc(c.bg)};color:${esc(c.fg)};" title="${esc(c.label)}">
+              ${esc(c.label)}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="s-ttl"><span>TEXT COLOR</span></div>
+        <div class="color-swatches" id="cp-tx">
+          ${COLORS.text.map(c => `
+            <button class="color-swatch color-swatch-text" data-ckey="${esc(c.key)}" data-ctype="text"
+              style="border-color:${esc(c.fg)};color:${esc(c.fg)};" title="${esc(c.label)}">
+              ${esc(c.label)}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:10px;">
+          Colors render in 👁 Preview, chat bubbles, and note cards.
+          In the textarea you will see the tag syntax — tap 👁 to preview.
+        </div>
+        <button class="btn mt-12" style="width:100%;" id="cp-close">CLOSE</button>
+      </div>
+    `);
+
+    setTimeout(() => {
+      // Wire highlight swatches
+      document.querySelectorAll('[data-ckey][data-ctype="highlight"]').forEach(b => {
+        b.addEventListener('click', () => {
+          const col = COLORS.highlight.find(c => c.key === b.dataset.ckey);
+          if (!col) return;
+          wrapColor(col.tag, col.key);
+          closeSheet();
+        });
+      });
+      // Wire text color swatches
+      document.querySelectorAll('[data-ckey][data-ctype="text"]').forEach(b => {
+        b.addEventListener('click', () => {
+          const col = COLORS.text.find(c => c.key === b.dataset.ckey);
+          if (!col) return;
+          wrapColor(col.tag, col.key);
+          closeSheet();
+        });
+      });
+      document.getElementById('cp-close')?.addEventListener('click', closeSheet);
+    }, 60);
+  }
+
+  function wrapColor(tag, key) {
+    const { start, end, word } = wordAtCursor(ta);
+    const val    = ta.value;
+    const target = (start !== end) ? val.slice(start, end) : (word || 'text');
+    const s      = start !== end ? start : (start - (word?.length || 0));
+    const e      = start !== end ? end   : start;
+    const insert = `${tag}${target}[[/]]`;
+    ta.value = val.slice(0, s) + insert + val.slice(e);
+    ta.focus();
+    ta.selectionStart = s + tag.length;
+    ta.selectionEnd   = s + tag.length + target.length;
+    autoresize();
+  }
   let voiceRec = null;
   function toggleVoice() {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -346,6 +443,7 @@ export function mountToolbar(root, cfg) {
   on('preview',     openPreview);
   on('case',        toggleCase);
   on('emoji',       openEmoji);
+  on('color',       openColorPicker);
   on('dictionary',  openDict);
   on('duplicate',   duplicateLine);
   on('attach',      () => { if (cfg.onAttach) ensureFileInput().click(); else toast('Attach not enabled here'); });
