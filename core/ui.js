@@ -125,49 +125,95 @@ export function timeAgo(ts) {
 
 export function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
-/* ─── SEND OUT ───────────────────────────────────────────────────────────
-   mountSendOut(containerEl, getContent, getFilename)
-   Renders the SEND OUT section (SHARE FILE + WHATSAPP / EMAIL / PRINT / COPY)
-   inside containerEl. Call after output is ready.
-   getContent()  → string of text to share
-   getFilename() → filename without extension (e.g. "Paragraph-Corrected")
-   ─────────────────────────────────────────────────────────────────────── */
-export function mountSendOut(container, getContent, getFilename) {
+/* ─── FILENAME GENERATOR ─────────────────────────────────────────
+   G-{MODULE}-{CODE}{SEQ}-{D}-{MON}.txt
+   SEQ resets to 01 each new day, per module, stored in localStorage.
+   Every share/download/copy action increments the daily counter.
+   ─────────────────────────────────────────────────────────────── */
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+export function gFileName(module, code, ext = 'txt') {
+  const now  = new Date();
+  const day  = now.getDate();
+  const mon  = MONTHS[now.getMonth()];
+  const dateKey  = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+  const storeKey = `gai.fn.${module}.${dateKey}`;
+  let seq = 1;
+  try {
+    const raw = localStorage.getItem(storeKey);
+    seq = raw ? JSON.parse(raw) + 1 : 1;
+    localStorage.setItem(storeKey, JSON.stringify(seq));
+  } catch {}
+  return `G-${module}-${code}${String(seq).padStart(2,'0')}-${day}-${mon}.${ext}`;
+}
+
+/* ─── SEND OUT ────────────────────────────────────────────────────
+   mountSendOut(container, opts)
+
+   opts = {
+     module : 'EMAIL',         // for gFileName (uppercase)
+     code   : 'EM',            // 2-letter code for gFileName
+     items  : [                // 1 item = no selector shown
+       { key:'corrected', label:'CORRECTED v1', getContent: () => '...' },
+       { key:'polished',  label:'POLISHED v3',  getContent: () => '...', default: true }
+     ]
+   }
+
+   Every action (SHARE FILE / WhatsApp / Email / Print / Copy)
+   uses the currently selected item's content + gFileName for naming.
+   ─────────────────────────────────────────────────────────────── */
+export function mountSendOut(container, opts) {
+  const items      = opts.items || [];
+  const hasChoice  = items.length > 1;
+  let selectedKey  = (items.find(i => i.default) || items[0])?.key || '';
+
+  function getSelected() { return items.find(i => i.key === selectedKey) || items[0]; }
+  function getContent()  { return getSelected()?.getContent?.() || ''; }
+  function getFname()    { return gFileName(opts.module, opts.code); }
+
   container.innerHTML = `
     <div class="s-ttl"><span>SEND OUT</span></div>
     <div class="frame subtle send-out-box">
       <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      ${hasChoice ? `
+        <div class="lang-chips so-chips" style="margin-bottom:10px;">
+          ${items.map(i => `
+            <button class="chip ${i.key === selectedKey ? 'on' : ''}" data-sokey="${esc(i.key)}">${esc(i.label)}</button>
+          `).join('')}
+        </div>
+      ` : ''}
       <button class="btn btn-primary send-out-share" style="width:100%;margin-bottom:10px;">
         📤 SHARE FILE
       </button>
       <div class="send-out-quick">
-        <button class="send-out-btn" data-so="whatsapp">
-          <span class="send-out-icn">💬</span><span>WHATSAPP</span>
-        </button>
-        <button class="send-out-btn" data-so="email">
-          <span class="send-out-icn">✉️</span><span>EMAIL</span>
-        </button>
-        <button class="send-out-btn" data-so="print">
-          <span class="send-out-icn">🖨️</span><span>PRINT</span>
-        </button>
-        <button class="send-out-btn" data-so="copy">
-          <span class="send-out-icn">⧉</span><span>COPY</span>
-        </button>
+        <button class="send-out-btn" data-so="whatsapp"><span class="send-out-icn">💬</span><span>WHATSAPP</span></button>
+        <button class="send-out-btn" data-so="email"><span class="send-out-icn">✉️</span><span>EMAIL</span></button>
+        <button class="send-out-btn" data-so="print"><span class="send-out-icn">🖨️</span><span>PRINT</span></button>
+        <button class="send-out-btn" data-so="copy"><span class="send-out-icn">⧉</span><span>COPY</span></button>
       </div>
       <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:8px;">
-        SHARE FILE attaches the actual file via Android's share sheet (WhatsApp, Drive, Telegram, etc.).
-        The 4 buttons below send a text summary to those apps — files don't attach via direct links.
+        SHARE FILE attaches the actual file via Android's share sheet.
+        The 4 buttons send text directly to those apps.
       </div>
     </div>
   `;
 
-  /* SHARE FILE — Web Share API with file attachment */
+  /* Selector chips */
+  if (hasChoice) {
+    container.querySelectorAll('[data-sokey]').forEach(b => {
+      b.addEventListener('click', () => {
+        selectedKey = b.dataset.sokey;
+        container.querySelectorAll('[data-sokey]').forEach(x =>
+          x.classList.toggle('on', x.dataset.sokey === selectedKey));
+      });
+    });
+  }
+
+  /* SHARE FILE */
   container.querySelector('.send-out-share').addEventListener('click', async () => {
     const text = getContent();
     if (!text) { toast('No content to share'); return; }
-    const fname = (getFilename() || 'Grammar-AI-Export') + '.txt';
-
-    // Try Web Share API with file (Android Chrome supports this)
+    const fname = getFname();
     if (navigator.share && navigator.canShare) {
       try {
         const file = new File([text], fname, { type: 'text/plain' });
@@ -175,22 +221,14 @@ export function mountSendOut(container, getContent, getFilename) {
           await navigator.share({ files: [file], title: 'Grammar.AI', text: 'Export from Grammar.AI' });
           return;
         }
-      } catch (e) {
-        if (e.name === 'AbortError') return; // user cancelled — not an error
-      }
+      } catch (e) { if (e.name === 'AbortError') return; }
     }
-    // Fallback: Web Share API text only
     if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Grammar.AI', text: text.slice(0, 2000) });
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') return;
-      }
+      try { await navigator.share({ title: 'Grammar.AI', text: text.slice(0,2000) }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
     }
-    // Final fallback: download the file
     downloadFile(fname, text, 'text/plain');
-    toast('Shared as file download');
+    toast('Saved as file download');
   });
 
   /* Quick action buttons */
@@ -198,12 +236,11 @@ export function mountSendOut(container, getContent, getFilename) {
     btn.addEventListener('click', () => {
       const text = getContent();
       if (!text) { toast('No content to share'); return; }
-      const action = btn.dataset.so;
-      const fname  = getFilename() || 'Grammar-AI-Export';
+      const fname   = getFname();
       const snippet = text.slice(0, 1500);
-
+      const action  = btn.dataset.so;
       if (action === 'whatsapp') {
-        window.open('https://wa.me/?text=' + encodeURIComponent('*Grammar.AI Export*\n\n' + snippet), '_blank');
+        window.open('https://wa.me/?text=' + encodeURIComponent('*Grammar.AI*\n\n' + snippet), '_blank');
       } else if (action === 'email') {
         window.location.href = 'mailto:?subject=' + encodeURIComponent('Grammar.AI – ' + fname)
           + '&body=' + encodeURIComponent(snippet);
@@ -221,8 +258,5 @@ export function mountSendOut(container, getContent, getFilename) {
     });
   });
 
-  return {
-    refresh() {}, // placeholder for future use
-    destroy() { container.innerHTML = ''; }
-  };
+  return { destroy() { container.innerHTML = ''; } };
 }
