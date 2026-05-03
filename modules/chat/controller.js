@@ -2,34 +2,12 @@
    CHAT MODULE · controller · v1.1.1
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName, renderMd } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
 import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
 
-function renderMd(s) {
-  let html = esc(s);
-  // Color tags
-  html = html.replace(/\[\[hl-yellow\]\](.*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-blue\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-green\]\](.*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-pink\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[tx-lime\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
-  html = html.replace(/\[\[tx-red\]\](.*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
-  html = html.replace(/\[\[tx-blue\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
-  html = html.replace(/\[\[tx-muted\]\](.*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
-  // Standard markdown
-  html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
-  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/(^|\W)\*([^\*\n]+)\*(?=\W|$)/g, '$1<em>$2</em>');
-  html = html.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
-  html = html.replace(/(^|\n)(\d+)\.\s+(.+)/g, (_, br, n, t) => `${br}<div>${n}. ${t}</div>`);
-  html = html.replace(/(^|\n)[-•]\s+(.+)/g, (_, br, t) => `${br}<div>• ${t}</div>`);
-  html = html.replace(/\n/g, '<br>');
-  return html;
-}
 
 const SCOPE = Storage.scope('chat');
 
