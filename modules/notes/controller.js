@@ -377,7 +377,9 @@ export default async function init({ root, module }) {
         </div>
 
         <div class="field">
-          <label class="field-label">CONTENT · <span id="ed-wc">0 WORDS</span></label>
+          <label class="field-label">CONTENT · <span id="ed-wc">0 WORDS</span>
+            <button class="notes-casual-btn" id="ed-casual" title="Toggle casual reading mode">Aa</button>
+          </label>
           <textarea class="composer-input" id="ed-content" placeholder="Write your note here… no length limit." rows="6" style="max-height:280px;">${esc(n?.content || '')}</textarea>
           <div id="ed-toolbar"></div>
         </div>
@@ -417,10 +419,31 @@ export default async function init({ root, module }) {
       const edTitle = document.getElementById('ed-title');
       const edContent = document.getElementById('ed-content');
       const edWc    = document.getElementById('ed-wc');
+      const edCasual = document.getElementById('ed-casual');
       const edTbMount = document.getElementById('ed-toolbar');
       const edAiResult = document.getElementById('ed-ai-result');
       const edAiText = document.getElementById('ed-ai-text');
       const edAiLabel = document.getElementById('ed-ai-label');
+
+      // Casual mode — same JetBrains Mono, just breathes more
+      const casualOn = SCOPE.get('casualMode', false);
+      function applyCasual(on) {
+        if (!edContent) return;
+        edContent.style.fontSize   = on ? '15px'  : '';
+        edContent.style.lineHeight = on ? '1.95'  : '';
+        edContent.style.letterSpacing = on ? '0.01em' : '';
+        if (edCasual) {
+          edCasual.classList.toggle('on', on);
+          edCasual.title = on ? 'Casual mode ON — tap to turn off' : 'Toggle casual reading mode';
+        }
+      }
+      applyCasual(casualOn);
+      edCasual?.addEventListener('click', () => {
+        const next = !SCOPE.get('casualMode', false);
+        SCOPE.set('casualMode', next);
+        applyCasual(next);
+        toast(next ? 'Casual mode ON — breathes more' : 'Casual mode OFF', 'success');
+      });
 
       // Word count
       function updateWC() {

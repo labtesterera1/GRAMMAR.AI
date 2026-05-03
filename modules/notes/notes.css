@@ -165,3 +165,27 @@
   .numpad { max-width: 320px; }
   .num-btn { font-size: 28px; padding: 16px 0; }
 }
+
+/* ─── Casual mode toggle button ─── */
+.notes-casual-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  padding: 2px 7px;
+  border: 0.5px solid var(--border-2);
+  color: var(--dim);
+  background: transparent;
+  cursor: pointer;
+  margin-left: 10px;
+  vertical-align: middle;
+  transition: all 0.15s var(--ease);
+}
+.notes-casual-btn:hover { color: var(--lime); border-color: var(--lime-dim); }
+.notes-casual-btn.on {
+  color: var(--lime);
+  border-color: var(--lime-dim);
+  background: var(--lime-soft);
+}
