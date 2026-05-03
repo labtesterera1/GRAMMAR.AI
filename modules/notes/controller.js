@@ -6,7 +6,7 @@
    copy, send to chat, download TXT/JSON, import JSON
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -603,7 +603,7 @@ export default async function init({ root, module }) {
     });
     const vv = Storage.get('version', '1.0.0') || '1.0.0';
     const d  = new Date().toISOString().slice(0, 10);
-    downloadFile(`Grammar.AI_v${vv}_Notes-${labels[type].replace(/ /g,'-')}_${d}.txt`, txt, 'text/plain');
+    downloadFile(gFileName('NOTES', 'NO'), txt, 'text/plain');
     closeSheet();
   }
 
@@ -615,7 +615,7 @@ export default async function init({ root, module }) {
       _meta: { app: 'Grammar.AI', scope: 'Notes', exportedAt: new Date().toISOString(), count: notes.length },
       notes
     };
-    downloadFile(`Grammar.AI_v${vv}_Notes_${d}.json`, JSON.stringify(dump, null, 2), 'application/json');
+    downloadFile(gFileName('NOTES', 'NO', 'json'), JSON.stringify(dump, null, 2), 'application/json');
     closeSheet();
   }
 
