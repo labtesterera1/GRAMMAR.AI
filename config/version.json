@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "build": "2026.05.03",
   "channel": "stable",
   "history": [
     {
-      "version": "1.3.0",
+      "version": "1.3.1",
       "date": "2026-05-03",
-      "notes": "Point1: Unified filename G-MODULE-CODE##-D-MON across all share/download/copy actions with daily auto-reset counter. Point2: Email SEND OUT version selector (CORRECTED v1/IMPROVED v2/POLISHED v3, default v3). Point3: All modules get INPUT/OUTPUT selector in SEND OUT. Point4: Flashcards expanded to 31 topics across 3 categories (TENSES/GRAMMAR/VOCABULARY), 10 cards each, bilingual."
+      "notes": "Module 08: Rewrite — WordTune-style 5-card rewriter with Paragraph/Sentence mode toggle. Per-card COPY/USE THIS/SPEAK. READ MODE with font/spacing controls and TTS. SEND OUT with INPUT/individual/ALL selector. No voice in toolbar."
     },
     {
-      "version": "1.2.3",
-      "date": "2026-05-02",
-      "notes": "Exercise crash fixed. Chat download-all. Email/Translator/Notes attachment. New app icon. Emoji picker on all toolbars."
+      "version": "1.3.0",
+      "date": "2026-05-03",
+      "notes": "Point1: Unified G-MODULE-CODE##-D-MON filename. Point2: Email SEND OUT version selector. Point3: INPUT/OUTPUT selector all modules. Point4: Flash 3 categories (31 topics)."
     }
   ]
 }
