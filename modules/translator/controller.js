@@ -2,7 +2,7 @@
    TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -47,13 +47,14 @@ export default async function init({ root, module }) {
   function showSendOut() {
     if (!state.output || !elSendOut) return;
     elSendOut.classList.remove('hide');
-    const v = '1.2.1';
-    const d = new Date().toISOString().slice(0,10);
-    mountSendOut(
-      elSendOut,
-      () => state.output,
-      () => `Grammar.AI_v${v}_Translator-${state.direction}_${d}`
-    );
+    mountSendOut(elSendOut, {
+      module: 'TRANSLATOR',
+      code: 'TR',
+      items: [
+        { key: 'input',  label: 'INPUT',  getContent: () => state.input },
+        { key: 'output', label: 'OUTPUT', getContent: () => state.output, default: true }
+      ]
+    });
   }
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
@@ -134,9 +135,7 @@ export default async function init({ root, module }) {
   });
   elDl.addEventListener('click', () => {
     if (!state.output) { toast('Nothing to download yet'); return; }
-    const ver = '1.2.3';
-    const d   = new Date().toISOString().slice(0,10);
-    downloadFile(`Grammar.AI_v${ver}_Translator-${state.direction}_${d}.txt`, state.output, 'text/plain');
+    downloadFile(gFileName('TRANSLATOR', 'TR'), state.output, 'text/plain');
   });
 
   elHist.addEventListener('click', () => {
