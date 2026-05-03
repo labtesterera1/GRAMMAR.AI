@@ -155,3 +155,29 @@
 @media (min-width: 700px) {
   .emoji-grid { grid-template-columns: repeat(8, 1fr); }
 }
+
+/* ─── Color picker swatches ─── */
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.color-swatch {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 10px 4px;
+  border: 0.5px solid transparent;
+  text-align: center;
+  font-weight: 500;
+  transition: all 0.15s var(--ease);
+  cursor: pointer;
+}
+.color-swatch:hover { transform: scale(1.06); filter: brightness(1.1); }
+.color-swatch:active { transform: scale(0.96); }
+.color-swatch-text {
+  background: var(--surface-2) !important;
+  border-width: 1.5px !important;
+  font-weight: 500;
+}
