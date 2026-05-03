@@ -1,0 +1,18 @@
+{
+  "id": "rewrite",
+  "name": "Rewrite",
+  "version": "1.0.0",
+  "description": "WordTune-style 5-card rewriter. Paragraph and Sentence mode. READ MODE with TTS.",
+  "icon": "✍️",
+  "options": {
+    "modes": ["paragraph", "sentence"],
+    "defaultMode": "paragraph",
+    "rewrites": [
+      { "key": "original", "label": "ORIGINAL STYLE", "color": "lime",   "desc": "Grammar corrected, same tone" },
+      { "key": "casual",   "label": "CASUAL",          "color": "warn",   "desc": "Friendly, conversational" },
+      { "key": "formal",   "label": "FORMAL",           "color": "muted",  "desc": "Professional, polished" },
+      { "key": "shorter",  "label": "SHORTER",          "color": "muted",  "desc": "Condensed, no filler" },
+      { "key": "expanded", "label": "EXPANDED",         "color": "muted",  "desc": "Richer, more detail" }
+    ]
+  }
+}

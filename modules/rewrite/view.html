@@ -1,0 +1,56 @@
+<div class="page-inner">
+
+  <!-- Header -->
+  <div class="kicker">
+    <span data-bind="moduleNum">MOD 08 / REWRITE</span>
+    <span class="lime" data-bind="status">● READY</span>
+  </div>
+  <div class="headline">Rewrite</div>
+  <div class="subline">
+    <span>REPHRASE · REFINE · REWRITE</span>
+    <span data-bind="modeLabel">PARAGRAPH MODE</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="rw-mode-row">
+    <button class="rw-mode-btn on" data-mode="paragraph">¶ PARAGRAPH MODE</button>
+    <button class="rw-mode-btn"    data-mode="sentence">― SENTENCE MODE</button>
+  </div>
+  <div class="rw-mode-hint" id="rw-mode-hint">
+    Paste a full paragraph — get 5 rewrites of the whole text.
+  </div>
+
+  <!-- Input -->
+  <div class="s-ttl"><span>YOUR TEXT</span><span class="num" id="rw-wc">0 WORDS</span></div>
+  <textarea
+    class="composer-input"
+    id="rw-input"
+    placeholder="Paste or type your text here…"
+    rows="5"
+    aria-label="Text to rewrite"></textarea>
+  <div id="toolbar-mount"></div>
+
+  <!-- Actions row -->
+  <div class="row gap-12 mt-12" style="flex-wrap:wrap;">
+    <button class="btn btn-primary flex-1" id="rw-go">✍️ REWRITE × 5</button>
+    <button class="btn" id="rw-read">📖 READ MODE</button>
+    <button class="btn btn-rust" id="rw-clear">✕ CLEAR</button>
+  </div>
+
+  <!-- Rewrite cards output -->
+  <div id="rw-output" class="hide">
+    <div class="s-ttl mt-16"><span>5 REWRITES</span><span class="num" id="rw-route">—</span></div>
+    <div id="rw-cards" class="rw-cards"></div>
+
+    <!-- SEND OUT -->
+    <div id="rw-sendout" class="hide"></div>
+  </div>
+
+</div>
