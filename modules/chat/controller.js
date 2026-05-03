@@ -10,6 +10,16 @@ import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
 
 function renderMd(s) {
   let html = esc(s);
+  // Color tags
+  html = html.replace(/\[\[hl-yellow\]\](.*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-blue\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-green\]\](.*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-pink\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[tx-lime\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
+  html = html.replace(/\[\[tx-red\]\](.*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
+  html = html.replace(/\[\[tx-blue\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
+  html = html.replace(/\[\[tx-muted\]\](.*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
+  // Standard markdown
   html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
