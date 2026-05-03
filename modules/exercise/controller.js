@@ -3,7 +3,7 @@
    Sub-tabs: tense / flash / vocab / story
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -30,6 +30,7 @@ export default async function init({ root, module }) {
     // flash
     flashCards: SCOPE.get('flashCards', []),
     flashTopic: SCOPE.get('flashTopic', ''),
+    flashCategory: SCOPE.get('flashCategory', 'tenses'),
     flashIdx: 0,
     flashFlipped: false,
     flashKnown: SCOPE.get('flashKnown', 0),
@@ -175,11 +176,15 @@ export default async function init({ root, module }) {
     elTAList.textContent = (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
     if (elTenseSendOut) {
       elTenseSendOut.classList.remove('hide');
-      const v = '1.2.1', dt = new Date().toISOString().slice(0,10);
-      mountSendOut(elTenseSendOut,
-        () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n${elTQList.textContent}\n\nANSWERS:\n${elTAList.textContent}`,
-        () => `Grammar.AI_v${v}_Exercise-${(d.tense||'').replace(/ /g,'-')}_${dt}`
-      );
+      mountSendOut(elTenseSendOut, {
+        module: 'EXERCISE',
+        code: 'EX',
+        items: [
+          { key: 'questions', label: 'QUESTIONS',  getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}` },
+          { key: 'answers',   label: 'ANSWERS',    getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nANSWERS:\n\n${elTAList.textContent}` },
+          { key: 'both',      label: 'BOTH',       getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}\n\nANSWERS:\n\n${elTAList.textContent}`, default: true }
+        ]
+      });
     }
   }
 
@@ -191,7 +196,7 @@ export default async function init({ root, module }) {
     txt += `\n\n${'-'.repeat(50)}\nANSWERS:\n\n`;
     txt += (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
     txt += `\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(`tense-${(d.tense || '').replace(/ /g, '-')}.txt`, txt, 'text/plain');
+    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
   }
 
   /* ════════════════════════════════════════
@@ -218,10 +223,35 @@ export default async function init({ root, module }) {
   const elFSum     = $('#flash-summary', root);
   const elFSumText = $('#flash-sum-text', root);
   const elFRestart = $('#flash-restart', root);
+  const elFCats    = $('#flash-cats', root);
 
-  elFTopic.innerHTML = (opts.flashcardTopics || []).map(t =>
-    `<option value="${esc(t)}" ${t === state.flashTopic ? 'selected' : ''}>${esc(t)}</option>`
-  ).join('');
+  const flashCats = opts.flashCategories || {};
+
+  function populateFlashTopics() {
+    const cat = flashCats[state.flashCategory] || {};
+    const topics = cat.topics || [];
+    elFTopic.innerHTML = topics.map(t =>
+      `<option value="${esc(t)}" ${t === state.flashTopic ? 'selected' : ''}>${esc(t)}</option>`
+    ).join('');
+    // If saved topic not in new category, reset to first
+    if (topics.length && !topics.includes(state.flashTopic)) {
+      state.flashTopic = topics[0];
+      elFTopic.value = state.flashTopic;
+    }
+  }
+
+  // Wire category chips
+  $$('.chip[data-fcat]', elFCats).forEach(b => {
+    b.classList.toggle('on', b.dataset.fcat === state.flashCategory);
+    b.addEventListener('click', () => {
+      state.flashCategory = b.dataset.fcat;
+      SCOPE.set('flashCategory', state.flashCategory);
+      $$('.chip[data-fcat]', elFCats).forEach(x => x.classList.toggle('on', x.dataset.fcat === state.flashCategory));
+      populateFlashTopics();
+    });
+  });
+
+  populateFlashTopics();
 
   if (state.flashCards.length > 0) {
     elFArea.classList.remove('hide');
@@ -339,7 +369,7 @@ export default async function init({ root, module }) {
       txt += `${i+1}. ${c.question}\n   ANS: ${c.answer}\n   ${c.explanation || ''}\n   ${c.explanation_hindi || ''}\n\n`;
     });
     txt += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(`flashcards-${state.flashTopic.replace(/ /g, '-')}.txt`, txt, 'text/plain');
+    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
   }
 
   /* ════════════════════════════════════════
@@ -419,7 +449,7 @@ export default async function init({ root, module }) {
       t += `${i+1}. ${w.word} (${w.type})\n   ${w.meaning}\n   1. ${w.example1}\n   2. ${w.example2}\n\n`;
     });
     t += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(`vocab-${d.level}.txt`, t, 'text/plain');
+    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
   }
 
   /* ════════════════════════════════════════
@@ -497,11 +527,16 @@ export default async function init({ root, module }) {
     elSLesson.textContent = d.lesson || '';
     if (elStorySendOut) {
       elStorySendOut.classList.remove('hide');
-      const v = '1.2.1', dt = new Date().toISOString().slice(0,10);
-      mountSendOut(elStorySendOut,
-        () => `${d.title}\n\n${d.story}\n\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}`,
-        () => `Grammar.AI_v${v}_Story-${(d.topic||'').replace(/ /g,'-')}_${dt}`
-      );
+      mountSendOut(elStorySendOut, {
+        module: 'EXERCISE',
+        code: 'EX',
+        items: [
+          { key: 'story',   label: 'STORY',          getContent: () => `${d.title}\n\n${d.story}` },
+          { key: 'grammar', label: 'GRAMMAR',         getContent: () => `GRAMMAR FOCUS:\n${d.grammarFocus}` },
+          { key: 'lesson',  label: 'LESSON',          getContent: () => `LESSON:\n${d.lesson}` },
+          { key: 'all',     label: 'ALL',             getContent: () => `${d.title}\n\n${d.story}\n\nGRAMMAR FOCUS:\n${d.grammarFocus}\n\nLESSON:\n${d.lesson}`, default: true }
+        ]
+      });
     }
   }
 
@@ -509,7 +544,7 @@ export default async function init({ root, module }) {
     if (!state.storyData) return;
     const d = state.storyData;
     const t = `${d.title}\n${'='.repeat((d.title || '').length)}\n${d.topic} | ${d.readingTime}\n\n${d.story}\n\n${'-'.repeat(30)}\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(`story-${(d.topic || '').replace(/ /g, '-')}.txt`, t, 'text/plain');
+    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
   }
 
   /* ─── Status ─── */

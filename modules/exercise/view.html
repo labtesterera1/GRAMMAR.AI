@@ -51,7 +51,16 @@
   <!-- ─── FLASHCARDS SUB-TAB ─── -->
   <div class="ex-sub hide" data-sub="flash">
     <div class="s-ttl"><span>FLASHCARDS</span><span class="num">10 PER ROUND</span></div>
-    <div class="row gap-12">
+
+    <!-- Category chips -->
+    <div class="lang-chips" id="flash-cats">
+      <button class="chip on" data-fcat="tenses">TENSES</button>
+      <button class="chip"    data-fcat="grammar">GRAMMAR</button>
+      <button class="chip"    data-fcat="vocabulary">VOCABULARY</button>
+    </div>
+
+    <!-- Topic + actions -->
+    <div class="row gap-12 mt-12">
       <select class="select" id="flash-topic" style="flex:1;"></select>
       <button class="btn btn-primary" id="flash-go">▸ GENERATE</button>
       <button class="btn btn-rust" id="flash-clear">✕ CLEAR</button>

@@ -1,8 +1,8 @@
 {
   "id": "exercise",
   "name": "Exercise",
-  "version": "1.0.0",
-  "description": "Practice with tense exercises, flashcards, vocab, and stories.",
+  "version": "1.3.0",
+  "description": "Tense exercises, flashcards (31 topics, 3 categories), vocab, and story.",
   "icon": "🎯",
   "options": {
     "subTabs": [
@@ -18,10 +18,35 @@
       "Simple Future", "Future Continuous", "Future Perfect", "Future Perfect Continuous",
       "Prepositions of Place", "Prepositions of Time", "Prepositions of Movement"
     ],
-    "flashcardTopics": [
-      "Simple Present", "Simple Past", "Present Perfect", "Future Simple",
-      "Prepositions", "Articles", "Vocabulary"
-    ],
+    "flashCategories": {
+      "tenses": {
+        "label": "TENSES",
+        "topics": [
+          "Simple Present", "Present Continuous", "Present Perfect",
+          "Present Perfect Continuous", "Simple Past", "Past Continuous",
+          "Past Perfect", "Past Perfect Continuous", "Simple Future",
+          "Future Continuous", "Future Perfect", "Future Perfect Continuous",
+          "Prepositions of Place", "Prepositions of Time", "Prepositions of Movement"
+        ]
+      },
+      "grammar": {
+        "label": "GRAMMAR",
+        "topics": [
+          "Articles (a/an/the)", "Conjunctions", "Modal Verbs",
+          "Active vs Passive Voice", "Direct vs Indirect Speech",
+          "Punctuation Rules", "Singular vs Plural",
+          "Countable vs Uncountable Nouns", "Adjectives vs Adverbs",
+          "Question Formation"
+        ]
+      },
+      "vocabulary": {
+        "label": "VOCABULARY",
+        "topics": [
+          "Daily Life", "Workplace", "Travel",
+          "Idioms & Phrases", "Synonyms & Antonyms", "Phrasal Verbs"
+        ]
+      }
+    },
     "vocabLevels": [
       { "key": "beginner",     "label": "Beginner" },
       { "key": "intermediate", "label": "Intermediate" },
