@@ -6,7 +6,7 @@
    copy, send to chat, download TXT/JSON, import JSON
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName, renderMd } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -264,7 +264,7 @@ export default async function init({ root, module }) {
             <span class="note-date mono">${esc(timeAgo(n.updatedAt))}</span>
           </div>
           ${n.title ? `<div class="note-title serif">${esc(n.title)}</div>` : ''}
-          <div class="note-preview mono ${isLong ? 'collapsed' : ''}" id="nprev-${esc(n.id)}">${esc(preview)}${isLong ? '…' : ''}</div>
+          <div class="note-preview mono ${isLong ? 'collapsed' : ''}" id="nprev-${esc(n.id)}">${renderMd(preview)}${isLong ? '<span class="dim">…</span>' : ''}</div>
           ${tagsHtml ? `<div class="note-tags">${tagsHtml}</div>` : ''}
           <div class="note-actions">
             ${isLong ? `<button class="note-act" data-expand="${esc(n.id)}">▼ MORE</button>` : ''}
