@@ -2,7 +2,7 @@
    CHAT MODULE · controller · v1.1.1
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -134,21 +134,13 @@ export default async function init({ root, module }) {
   // Download ALL conversation as single .txt file
   $('#chat-download-all', root).addEventListener('click', () => {
     if (state.history.length === 0) { toast('No conversation yet'); return; }
-    const v = '1.2.3';
-    const d = new Date().toISOString().slice(0,10);
-    const lines = state.history.map(m => {
-      const who = m.role === 'user' ? 'YOU' : 'GRAMMAR.AI';
-      return `[${new Date(m.ts).toISOString()}] ${who}:\n${m.content}\n`;
-    }).join('\n---\n\n');
     const header = `Grammar.AI — Full Chat Export\n${'='.repeat(50)}\nDate: ${new Date().toLocaleString('en-IN')}\nMessages: ${state.history.length}\n${'='.repeat(50)}\n\n`;
-    downloadFile(`Grammar.AI_v${v}_Chat-All_${d}.txt`, header + lines, 'text/plain');
+    downloadFile(gFileName('CHAT', 'CH'), header + buildChatText('all'), 'text/plain');
     toast('Downloaded', 'success');
   });
 
   $('#chat-export', root).addEventListener('click', () => {
-    if (state.history.length === 0) { toast('No history to export'); return; }
-    const v = '1.2.1';
-    const d = new Date().toISOString().slice(0,10);
+    if (state.history.length === 0) { toast('No conversation yet'); return; }
     openSheet(`
       <div class="sheet-handle"></div>
       <div class="sheet-inner">
@@ -161,11 +153,15 @@ export default async function init({ root, module }) {
     setTimeout(() => {
       const mount = document.getElementById('chat-sendout-mount');
       if (mount) {
-        mountSendOut(
-          mount,
-          () => buildChatText(),
-          () => `Grammar.AI_v${v}_Chat_${d}`
-        );
+        mountSendOut(mount, {
+          module: 'CHAT',
+          code: 'CH',
+          items: [
+            { key: 'user',      label: 'MY MESSAGES', getContent: () => buildChatText('user') },
+            { key: 'assistant', label: 'AI REPLIES',  getContent: () => buildChatText('assistant') },
+            { key: 'all',       label: 'FULL CONVO',  getContent: () => buildChatText('all'), default: true }
+          ]
+        });
       }
       document.getElementById('chat-so-close')?.addEventListener('click', closeSheet);
     }, 50);
@@ -324,12 +320,9 @@ export default async function init({ root, module }) {
       if (page) page.scrollTop = page.scrollHeight;
     });
     wrap.querySelector('[data-act="download"]').addEventListener('click', () => {
-      const who  = m.role === 'user' ? 'You' : 'GrammarAI';
-      const ts   = new Date(m.ts).toISOString().slice(0,19).replace(/[:T]/g,'-');
-      const v    = '1.2.1';
-      const d    = new Date().toISOString().slice(0,10);
+      const who = m.role === 'user' ? 'You' : 'GrammarAI';
       downloadFile(
-        `Grammar.AI_v${v}_Chat-${who}_${d}.txt`,
+        gFileName('CHAT', 'CH'),
         `[${new Date(m.ts).toISOString()}] ${who.toUpperCase()}:\n${m.content}`,
         'text/plain'
       );
@@ -395,12 +388,14 @@ export default async function init({ root, module }) {
     elInput.style.height = Math.min(180, elInput.scrollHeight) + 'px';
   }
 
-  function buildChatText() {
-    return state.history.map(m => {
+  function buildChatText(filter = 'all') {
+    let msgs = state.history;
+    if (filter === 'user')      msgs = msgs.filter(m => m.role === 'user');
+    if (filter === 'assistant') msgs = msgs.filter(m => m.role === 'assistant');
+    return msgs.map(m => {
       const who = m.role === 'user' ? 'YOU' : 'GRAMMAR.AI';
-      const t = new Date(m.ts).toISOString();
-      return `[${t}] ${who}:\n${m.content}\n`;
-    }).join('\n');
+      return `[${new Date(m.ts).toISOString()}] ${who}:\n${m.content}\n`;
+    }).join('\n---\n\n');
   }
 
   return {
