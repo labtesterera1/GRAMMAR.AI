@@ -59,16 +59,16 @@ export function renderToolbarHTML() {
 /** Markdown-lite preview renderer */
 function renderMd(s) {
   let html = esc(s);
-  // Color highlight tags: [[hl-yellow]]text[[/]]
-  html = html.replace(/\[\[hl-yellow\]\](.*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-blue\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-green\]\](.*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
-  html = html.replace(/\[\[hl-pink\]\](.*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
-  // Text color tags: [[tx-lime]]text[[/]]
-  html = html.replace(/\[\[tx-lime\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
-  html = html.replace(/\[\[tx-red\]\](.*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
-  html = html.replace(/\[\[tx-blue\]\](.*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
-  html = html.replace(/\[\[tx-muted\]\](.*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
+  // Color highlight tags — [\s\S]*? handles multiline spans
+  html = html.replace(/\[\[hl-yellow\]\]([\s\S]*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-blue\]\]([\s\S]*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-green\]\]([\s\S]*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-pink\]\]([\s\S]*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
+  // Text color tags
+  html = html.replace(/\[\[tx-lime\]\]([\s\S]*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
+  html = html.replace(/\[\[tx-red\]\]([\s\S]*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
+  html = html.replace(/\[\[tx-blue\]\]([\s\S]*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
+  html = html.replace(/\[\[tx-muted\]\]([\s\S]*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
   // Standard markdown
   html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
@@ -253,8 +253,10 @@ export function mountToolbar(root, cfg) {
 
   /* ─── Emoji picker ─── */
   function openEmoji() {
-    const catKeys = Object.keys(EMOJIS);
-    let activeTab = catKeys[0];
+    // Save cursor position before sheet opens (mobile loses focus)
+    const savedPos = ta.selectionStart !== undefined ? ta.selectionStart : ta.value.length;
+    const catKeys  = Object.keys(EMOJIS);
+    let activeTab  = catKeys[0];
 
     function renderEmojiSheet(tab) {
       return `
@@ -298,7 +300,8 @@ export function mountToolbar(root, cfg) {
         $$('#emoji-grid .emoji-btn[data-emoji]').forEach(b => {
           b.addEventListener('click', () => {
             const emoji = b.dataset.emoji;
-            const pos = ta.selectionStart || ta.value.length;
+            // Use savedPos — textarea lost focus when sheet opened on mobile
+            const pos = savedPos;
             ta.value = ta.value.slice(0, pos) + emoji + ta.value.slice(pos);
             ta.focus();
             ta.selectionStart = ta.selectionEnd = pos + emoji.length;
@@ -313,6 +316,13 @@ export function mountToolbar(root, cfg) {
 
   /* ─── Color picker ─── */
   function openColorPicker() {
+    // CRITICAL: Save selection NOW before sheet opens and textarea loses focus
+    const savedSel = {
+      start: ta.selectionStart,
+      end:   ta.selectionEnd,
+      val:   ta.value
+    };
+
     openSheet(`
       <div class="sheet-handle"></div>
       <div class="sheet-inner">
@@ -348,34 +358,47 @@ export function mountToolbar(root, cfg) {
     `);
 
     setTimeout(() => {
-      // Wire highlight swatches
       document.querySelectorAll('[data-ckey][data-ctype="highlight"]').forEach(b => {
         b.addEventListener('click', () => {
           const col = COLORS.highlight.find(c => c.key === b.dataset.ckey);
-          if (!col) return;
-          wrapColor(col.tag, col.key);
-          closeSheet();
+          if (col) { wrapColorSaved(col.tag, savedSel); closeSheet(); }
         });
       });
-      // Wire text color swatches
       document.querySelectorAll('[data-ckey][data-ctype="text"]').forEach(b => {
         b.addEventListener('click', () => {
           const col = COLORS.text.find(c => c.key === b.dataset.ckey);
-          if (!col) return;
-          wrapColor(col.tag, col.key);
-          closeSheet();
+          if (col) { wrapColorSaved(col.tag, savedSel); closeSheet(); }
         });
       });
       document.getElementById('cp-close')?.addEventListener('click', closeSheet);
     }, 60);
   }
 
-  function wrapColor(tag, key) {
-    const { start, end, word } = wordAtCursor(ta);
-    const val    = ta.value;
-    const target = (start !== end) ? val.slice(start, end) : (word || 'text');
-    const s      = start !== end ? start : (start - (word?.length || 0));
-    const e      = start !== end ? end   : start;
+  /**
+   * Insert color tag using saved selection (works after textarea lost focus).
+   * savedSel = { start, end, val } captured before sheet opened.
+   */
+  function wrapColorSaved(tag, saved) {
+    const { start, end, val } = saved;
+    let target, s, e;
+
+    if (start !== end) {
+      // User had a real selection
+      target = val.slice(start, end);
+      s = start;
+      e = end;
+    } else {
+      // No selection — auto-detect word at saved cursor position
+      const WORD = /[\wÀ-ÖØ-öø-ÿ'-]/;
+      let left  = start;
+      let right = start;
+      while (left  > 0          && WORD.test(val[left  - 1])) left--;
+      while (right < val.length && WORD.test(val[right]))     right++;
+      target = val.slice(left, right) || 'text';
+      s = left;
+      e = right;
+    }
+
     const insert = `${tag}${target}[[/]]`;
     ta.value = val.slice(0, s) + insert + val.slice(e);
     ta.focus();

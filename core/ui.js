@@ -125,6 +125,28 @@ export function timeAgo(ts) {
 
 export function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
+/* ─── Shared markdown+color renderer (used by notes cards, chat, etc.) ─── */
+export function renderMd(s) {
+  let html = esc(s);
+  html = html.replace(/\[\[hl-yellow\]\]([\s\S]*?)\[\[\/\]\]/g, '<mark style="background:#f5e642;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-blue\]\]([\s\S]*?)\[\[\/\]\]/g,   '<mark style="background:#42a8f5;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-green\]\]([\s\S]*?)\[\[\/\]\]/g,  '<mark style="background:#42f57e;color:#000;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[hl-pink\]\]([\s\S]*?)\[\[\/\]\]/g,   '<mark style="background:#f542b0;color:#fff;padding:0 3px;">$1</mark>');
+  html = html.replace(/\[\[tx-lime\]\]([\s\S]*?)\[\[\/\]\]/g,   '<span style="color:#d4ff3a;">$1</span>');
+  html = html.replace(/\[\[tx-red\]\]([\s\S]*?)\[\[\/\]\]/g,    '<span style="color:#c97a5a;">$1</span>');
+  html = html.replace(/\[\[tx-blue\]\]([\s\S]*?)\[\[\/\]\]/g,   '<span style="color:#42a8f5;">$1</span>');
+  html = html.replace(/\[\[tx-muted\]\]([\s\S]*?)\[\[\/\]\]/g,  '<span style="color:#8a8479;">$1</span>');
+  html = html.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  html = html.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(^|\W)\*([^\*\n]+)\*(?=\W|$)/g, '$1<em>$2</em>');
+  html = html.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+  html = html.replace(/(^|\n)(\d+)\.\s+(.+)/g, (_, br, n, t) => `${br}<div>${n}. ${t}</div>`);
+  html = html.replace(/(^|\n)[-•]\s+(.+)/g, (_, br, t) => `${br}<div>• ${t}</div>`);
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
 /* ─── FILENAME GENERATOR ─────────────────────────────────────────
    G-{MODULE}-{CODE}{SEQ}-{D}-{MON}.txt
    SEQ resets to 01 each new day, per module, stored in localStorage.
