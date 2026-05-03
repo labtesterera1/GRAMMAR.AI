@@ -1,19 +1,24 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "build": "2026.05.03",
   "channel": "stable",
   "history": [
     {
+      "version": "1.3.2",
+      "date": "2026-05-03",
+      "notes": "Rewrite: per-card Download + Download All button added. Notes: casual mode toggle in editor (same JetBrains Mono, 15px/1.95lh, breathes). All modules: mono font confirmed across INPUT/OUTPUT areas."
+    },
+    {
       "version": "1.3.1",
       "date": "2026-05-03",
-      "notes": "Module 08: Rewrite — WordTune-style 5-card rewriter with Paragraph/Sentence mode toggle. Per-card COPY/USE THIS/SPEAK. READ MODE with font/spacing controls and TTS. SEND OUT with INPUT/individual/ALL selector. No voice in toolbar."
+      "notes": "Module 08: Rewrite — 5-card rewriter, Paragraph/Sentence mode, READ MODE, SEND OUT."
     },
     {
       "version": "1.3.0",
       "date": "2026-05-03",
-      "notes": "Point1: Unified G-MODULE-CODE##-D-MON filename. Point2: Email SEND OUT version selector. Point3: INPUT/OUTPUT selector all modules. Point4: Flash 3 categories (31 topics)."
+      "notes": "Point1-4: Unified filenames, Email version selector, INPUT/OUTPUT selectors, Flash 3 categories."
     }
   ]
 }
