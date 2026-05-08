@@ -6,7 +6,7 @@
    SEND OUT: INPUT / individual / ALL selector + gFileName
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -233,6 +233,7 @@ Return ONLY the JSON object.`;
         <div class="rw-card-actions">
           <button class="rw-act" data-act="copy"     data-key="${esc(rw.key)}">⧉ COPY</button>
           <button class="rw-act" data-act="use"      data-key="${esc(rw.key)}">↩ USE THIS</button>
+          <button class="rw-act" data-act="color"    data-key="${esc(rw.key)}">🎨 COLOR</button>
           <button class="rw-act" data-act="download" data-key="${esc(rw.key)}">⬇ SAVE</button>
           <button class="rw-act" data-act="speak"    data-key="${esc(rw.key)}">🔊 SPEAK</button>
         </div>
@@ -241,13 +242,18 @@ Return ONLY the JSON object.`;
 
     /* Wire card actions */
     $$('.rw-act[data-act="copy"]', elCards).forEach(b => {
-      b.addEventListener('click', () => copyToClipboard(data[b.dataset.key] || ''));
+      const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
+      b.addEventListener('click', () => copyToClipboard(bodyEl?.innerText || data[b.dataset.key] || ''));
+    });
+    $$('.rw-act[data-act="color"]', elCards).forEach(b => {
+      const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
+      if (bodyEl) mountOutputColorPicker(b, bodyEl);
     });
     $$('.rw-act[data-act="download"]', elCards).forEach(b => {
       b.addEventListener('click', () => {
-        const text = data[b.dataset.key] || '';
+        const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
+        const text = bodyEl?.innerText || data[b.dataset.key] || '';
         if (!text) return;
-        const rw = REWRITES.find(r => r.key === b.dataset.key);
         downloadFile(gFileName('REWRITE', 'RW'), text, 'text/plain');
         toast('Downloaded', 'success');
       });
