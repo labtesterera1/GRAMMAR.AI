@@ -2,7 +2,7 @@
    EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -77,10 +77,10 @@ export default async function init({ root, module }) {
 
   // Restore last result if any
   if (state.last) {
-    elSummary.textContent  = state.last.summary  || '';
-    elCorrected.textContent = state.last.corrected || '';
-    elImproved.textContent  = state.last.improved  || '';
-    elPolished.textContent  = state.last.polished  || '';
+    elSummary.innerHTML  = renderMd(state.last.summary   || '');
+    elCorrected.innerHTML = renderMd(state.last.corrected || '');
+    elImproved.innerHTML  = renderMd(state.last.improved  || '');
+    elPolished.innerHTML  = renderMd(state.last.polished  || '');
     elResults.classList.remove('hide');
     showSendOut();
   }
@@ -176,10 +176,14 @@ export default async function init({ root, module }) {
   }
 
   async function analyze() {
-    const subject = elSubject.value.trim();
-    const body = elBody.value.trim();
-    if (!body) { toast('Enter the email body first'); return; }
+    const subjectRaw = elSubject.value.trim();
+    const bodyRaw    = elBody.value.trim();
+    if (!bodyRaw) { toast('Enter the email body first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    // Strip color tags before sending to AI
+    const subject = stripColorTags(subjectRaw);
+    const body    = stripColorTags(bodyRaw);
 
     const types = prompts.email_types || {};
     const typeLabel = types[state.type] || 'professional email';
@@ -215,10 +219,10 @@ Return ONLY this JSON:
       };
       SCOPE.set('last', state.last);
 
-      elSummary.textContent  = state.last.summary;
-      elCorrected.textContent = state.last.corrected;
-      elImproved.textContent  = state.last.improved;
-      elPolished.textContent  = state.last.polished;
+      elSummary.innerHTML  = renderMd(state.last.summary);
+      elCorrected.innerHTML = renderMd(state.last.corrected);
+      elImproved.innerHTML  = renderMd(state.last.improved);
+      elPolished.innerHTML  = renderMd(state.last.polished);
       elResults.classList.remove('hide');
       showSendOut();
       toast('Done · ' + r.route, 'success');
@@ -231,9 +235,10 @@ Return ONLY this JSON:
   }
 
   async function quickAction(promptKey, busyMsg) {
-    const text = elBody.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elBody.value.trim();
+    if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const text = stripColorTags(raw);
     toast(busyMsg);
     try {
       const r = await AI.chat([
@@ -251,8 +256,9 @@ Return ONLY this JSON:
   }
 
   function quickTranslate() {
-    const text = elBody.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elBody.value.trim();
+    if (!raw) { toast('Type something first'); return; }
+    const text = stripColorTags(raw);
     const isHindi = /[\u0900-\u097F]/.test(text);
     quickAction(isHindi ? 'quick_translate_hi2en' : 'quick_translate_en2hi', isHindi ? 'Hindi → English…' : 'English → Hindi…');
   }
