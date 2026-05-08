@@ -125,6 +125,18 @@ export function timeAgo(ts) {
 
 export function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
+/* ─── Strip color tags before sending to AI ───────────────
+   The AI shouldn't see [[hl-pink]]hello[[/]] — strip them.
+   Bold/italic/highlight markdown also stripped to avoid AI treating
+   them as part of grammar content.
+   ─────────────────────────────────────────────────────── */
+export function stripColorTags(s) {
+  if (!s) return s;
+  return s
+    .replace(/\[\[(?:hl-\w+|tx-\w+)\]\]([\s\S]*?)\[\[\/\]\]/g, '$1')
+    .replace(/\[\[\/\]\]/g, '');
+}
+
 /* ─── Shared markdown+color renderer (used by notes cards, chat, etc.) ─── */
 export function renderMd(s) {
   let html = esc(s);
