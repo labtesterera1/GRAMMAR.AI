@@ -2,7 +2,7 @@
    TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -75,7 +75,7 @@ export default async function init({ root, module }) {
   paintModes();
   elInput.value = state.input;
   if (state.output) {
-    elOutput.textContent = state.output;
+    elOutput.innerHTML = renderMd(state.output);
     elOutput.classList.remove('placeholder');
     showSendOut();
   }
@@ -172,9 +172,11 @@ export default async function init({ root, module }) {
   }
 
   async function translate() {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type something to translate'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something to translate'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    const text = stripColorTags(raw);
 
     const dir = directions.find(d => d.key === state.direction);
     const mode = elMode.value || dir.default;
@@ -192,7 +194,7 @@ export default async function init({ root, module }) {
         { role: 'system', content: (sys || '') + modeText },
         { role: 'user',   content: 'Translate:\n\n' + text }
       ], { temperature: 0.4, maxTokens: 1500 });
-      elOutput.textContent = r.text;
+      elOutput.innerHTML = renderMd(r.text);
       state.output = r.text;
       SCOPE.set('output', state.output);
       showSendOut();
@@ -221,9 +223,10 @@ export default async function init({ root, module }) {
   }
 
   async function quickAction(promptKey, busyMsg) {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const text = stripColorTags(raw);
     toast(busyMsg);
     try {
       const r = await AI.chat([
@@ -272,7 +275,7 @@ export default async function init({ root, module }) {
         paintModes();
         elMode.value = h.mode;
         elInput.value = h.input;
-        elOutput.textContent = h.output;
+        elOutput.innerHTML = renderMd(h.output);
         elOutput.classList.remove('placeholder');
         state.input = h.input;
         state.output = h.output;
