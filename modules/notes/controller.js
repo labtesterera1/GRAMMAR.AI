@@ -550,9 +550,12 @@ export default async function init({ root, module }) {
 
   /* ─── AI note actions ─── */
   async function runAiAction(action, edContent, edAiResult, edAiText, edAiLabel) {
-    const content = edContent?.value.trim();
-    if (!content) { toast('Write something first'); return; }
+    const raw = edContent?.value.trim();
+    if (!raw) { toast('Write something first'); return; }
     if (!AI.hasAnyRoute()) { toast('Set an AI route in Settings', 'error'); return; }
+
+    // Strip color tags before sending to AI
+    const content = stripColorTags(raw);
 
     const actionMap = {
       improve:   { label: '✨ Improved English', sys: 'You are an expert English editor.', user: 'Improve the English grammar, clarity, and flow. Keep same meaning. Show only the improved version:\n\n' + content },
@@ -564,7 +567,7 @@ export default async function init({ root, module }) {
     if (!p) return;
 
     if (edAiLabel) edAiLabel.textContent = p.label;
-    if (edAiText)  edAiText.textContent = 'Thinking…';
+    if (edAiText)  edAiText.innerHTML = '<span class="dim">Thinking…</span>';
     if (edAiResult) edAiResult.classList.remove('hide');
 
     try {
@@ -573,7 +576,7 @@ export default async function init({ root, module }) {
         { role: 'user',   content: p.user }
       ], { temperature: 0.5, maxTokens: 1500 });
       state.aiResult = r.text;
-      if (edAiText) edAiText.textContent = r.text;
+      if (edAiText) edAiText.innerHTML = renderMd(r.text);
       toast('Done · ' + r.route, 'success');
     } catch (e) {
       if (edAiText) edAiText.textContent = 'Error: ' + (e.details?.[0] || e.message);
