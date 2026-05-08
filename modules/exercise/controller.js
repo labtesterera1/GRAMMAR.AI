@@ -3,7 +3,7 @@
    Sub-tabs: tense / flash / vocab / story
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -522,9 +522,9 @@ export default async function init({ root, module }) {
     elSCopy.disabled = false;
     elSTitle.textContent = d.title || '';
     elSMeta.textContent = `${d.topic || ''} · ${d.level || ''} · ${d.readingTime || ''}`;
-    elSBody.textContent = d.story || '';
-    elSGrammar.textContent = d.grammarFocus || '';
-    elSLesson.textContent = d.lesson || '';
+    elSBody.innerHTML = renderMd(d.story || '');
+    elSGrammar.innerHTML = renderMd(d.grammarFocus || '');
+    elSLesson.innerHTML = renderMd(d.lesson || '');
     if (elStorySendOut) {
       elStorySendOut.classList.remove('hide');
       mountSendOut(elStorySendOut, {
