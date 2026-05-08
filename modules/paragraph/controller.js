@@ -2,7 +2,7 @@
    PARAGRAPH MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -33,11 +33,15 @@ export default async function init({ root, module }) {
   const elSpeak   = $('#para-speak', root);
   const elCopy    = $('#para-copy', root);
   const elDl      = $('#para-download', root);
+  const elColor   = $('#para-color', root);
   const elTbMount = $('#toolbar-mount', root);
   const elSendOut = $('#para-sendout', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elWC      = root.querySelector('[data-bind="wordCount"]');
+
+  // Wire output color picker — only works on output, input stays clean
+  mountOutputColorPicker(elColor, elOutput);
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
@@ -117,13 +121,15 @@ export default async function init({ root, module }) {
   });
 
   elCopy.addEventListener('click', () => {
-    if (!state.lastOutput) { toast('Nothing to copy yet'); return; }
-    copyToClipboard(state.lastOutput);
+    const text = elOutput.innerText || state.lastOutput || '';
+    if (!text) { toast('Nothing to copy yet'); return; }
+    copyToClipboard(text);
   });
 
   elDl.addEventListener('click', () => {
-    if (!state.lastOutput) { toast('Nothing to download yet'); return; }
-    downloadFile(gFileName('PARAGRAPH', 'PA'), state.lastOutput, 'text/plain');
+    const text = elOutput.innerText || state.lastOutput || '';
+    if (!text) { toast('Nothing to download yet'); return; }
+    downloadFile(gFileName('PARAGRAPH', 'PA'), text, 'text/plain');
   });
 
   function showNoRouteHelp() {
