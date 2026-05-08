@@ -6,7 +6,7 @@
    SEND OUT: INPUT / individual / ALL selector + gFileName
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -136,9 +136,11 @@ export default async function init({ root, module }) {
 
   /* ─── Generate ─── */
   async function generate() {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type or paste some text first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type or paste some text first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    const text = stripColorTags(raw);
 
     const isSentence = state.mode === 'sentence';
     if (isSentence && text.split(/\s+/).length > 60) {
@@ -227,7 +229,7 @@ Return ONLY the JSON object.`;
           <span class="rw-card-badge ${esc(colorMap[rw.key] || 'muted')}">${esc(rw.num)} · ${esc(rw.label)}</span>
           <span class="rw-card-desc mono">${esc(descMap[rw.key] || '')}</span>
         </div>
-        <div class="rw-card-body" id="rwtext-${esc(rw.key)}">${esc(data[rw.key] || '')}</div>
+        <div class="rw-card-body" id="rwtext-${esc(rw.key)}">${renderMd(data[rw.key] || '')}</div>
         <div class="rw-card-actions">
           <button class="rw-act" data-act="copy"     data-key="${esc(rw.key)}">⧉ COPY</button>
           <button class="rw-act" data-act="use"      data-key="${esc(rw.key)}">↩ USE THIS</button>
@@ -381,9 +383,10 @@ Return ONLY the JSON object.`;
 
   /* ─── Quick AI ─── */
   async function runQuickAI(promptKey, busyMsg) {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const text = stripColorTags(raw);
     toast(busyMsg);
     try {
       const r = await AI.chat([
