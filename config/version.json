@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.3.4",
-  "build": "2026.05.03",
+  "version": "1.3.5",
+  "build": "2026.05.04",
   "channel": "stable",
   "history": [
     {
-      "version": "1.3.4",
-      "date": "2026-05-03",
-      "notes": "Deep toolbar fixes: color picker saves selection before sheet opens (mobile focus-loss bug), regex uses [\\s\\S]*? for multiline color spans, wrapColor position math fixed, note cards render color tags, Notes filter chip 📅→📓."
+      "version": "1.3.5",
+      "date": "2026-05-04",
+      "notes": "Color tag rendering: All output displays (Paragraph, Email v1/v2/v3 + summary, Translator, Story body, Rewrite cards) now render color tags as visible colors. Color tags stripped from text before sending to AI to prevent the AI from treating them as content."
     },
     {
-      "version": "1.3.3",
+      "version": "1.3.4",
       "date": "2026-05-03",
-      "notes": "🎨 color picker, Notes 📓 icon, CANCEL button, ← HOME back button all modules."
+      "notes": "Deep toolbar fixes: color picker mobile focus, multiline regex, position math, note cards render colors."
     }
   ]
 }
