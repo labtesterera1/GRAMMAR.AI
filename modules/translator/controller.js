@@ -2,7 +2,7 @@
    TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -38,8 +38,12 @@ export default async function init({ root, module }) {
   const elDl      = $('#tr-download', root);
   const elHist    = $('#tr-history', root);
   const elSpeak   = $('#tr-speak', root);
+  const elColor   = $('#tr-color', root);
   const elSendOut = $('#tr-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
+
+  // Wire output color picker
+  mountOutputColorPicker(elColor, elOutput);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elHL      = root.querySelector('[data-bind="historyLine"]');
@@ -130,12 +134,14 @@ export default async function init({ root, module }) {
   });
 
   elCopy.addEventListener('click', () => {
-    if (!state.output) { toast('Nothing to copy yet'); return; }
-    copyToClipboard(state.output);
+    const text = elOutput.innerText || state.output || '';
+    if (!text) { toast('Nothing to copy yet'); return; }
+    copyToClipboard(text);
   });
   elDl.addEventListener('click', () => {
-    if (!state.output) { toast('Nothing to download yet'); return; }
-    downloadFile(gFileName('TRANSLATOR', 'TR'), state.output, 'text/plain');
+    const text = elOutput.innerText || state.output || '';
+    if (!text) { toast('Nothing to download yet'); return; }
+    downloadFile(gFileName('TRANSLATOR', 'TR'), text, 'text/plain');
   });
 
   elHist.addEventListener('click', () => {
