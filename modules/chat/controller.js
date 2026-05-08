@@ -2,7 +2,7 @@
    CHAT MODULE · controller · v1.1.1
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName, renderMd } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName, renderMd, mountOutputColorPicker } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -290,28 +290,35 @@ export default async function init({ root, module }) {
         <span>${m.role === 'user' ? 'YOU' : (m.route ? m.route.toUpperCase() : 'GRAMMAR.AI')}</span>
         <span>${esc(timeAgo(m.ts))}</span>
       </div>
-      <div class="bubble-body">${renderMd(m.content)}</div>
+      <div class="bubble-body" id="bdy-${m.ts}">${renderMd(m.content)}</div>
       <div class="bubble-actions">
         <button class="bubble-act" data-act="copy">⧉ COPY</button>
-        ${m.role === 'assistant' ? `<button class="bubble-act" data-act="reuse">↺ REUSE</button>` : ''}
+        ${m.role === 'assistant' ? `
+          <button class="bubble-act" data-act="reuse">↺ REUSE</button>
+          <button class="bubble-act" data-act="color">🎨 COLOR</button>
+        ` : ''}
         <button class="bubble-act" data-act="download">⬇ SAVE</button>
       </div>
     `;
-    wrap.querySelector('[data-act="copy"]').addEventListener('click', () => copyToClipboard(m.content));
+    const bodyEl = wrap.querySelector(`#bdy-${m.ts}`);
+    wrap.querySelector('[data-act="copy"]').addEventListener('click', () => {
+      copyToClipboard(bodyEl?.innerText || m.content);
+    });
     const reuse = wrap.querySelector('[data-act="reuse"]');
     if (reuse) reuse.addEventListener('click', () => {
       elInput.value = m.content;
       elInput.focus();
       autoresize();
-      // Scroll to composer
       const page = root.closest('.page');
       if (page) page.scrollTop = page.scrollHeight;
     });
+    const colorBtn = wrap.querySelector('[data-act="color"]');
+    if (colorBtn && bodyEl) mountOutputColorPicker(colorBtn, bodyEl);
     wrap.querySelector('[data-act="download"]').addEventListener('click', () => {
       const who = m.role === 'user' ? 'You' : 'GrammarAI';
       downloadFile(
         gFileName('CHAT', 'CH'),
-        `[${new Date(m.ts).toISOString()}] ${who.toUpperCase()}:\n${m.content}`,
+        `[${new Date(m.ts).toISOString()}] ${who.toUpperCase()}:\n${bodyEl?.innerText || m.content}`,
         'text/plain'
       );
     });
