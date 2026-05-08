@@ -2,7 +2,7 @@
    EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -50,12 +50,17 @@ export default async function init({ root, module }) {
       code: 'EM',
       items: [
         { key: 'input',     label: 'INPUT',          getContent: () => `Subject: ${state.subject || ''}\n\n${state.body || ''}` },
-        { key: 'corrected', label: 'CORRECTED v1',   getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.corrected || ''}` },
-        { key: 'improved',  label: 'IMPROVED v2',    getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.improved || ''}` },
-        { key: 'polished',  label: 'POLISHED v3',    getContent: () => `Subject: ${state.subject || ''}\n\n${state.last?.polished || ''}`, default: true }
+        { key: 'corrected', label: 'CORRECTED v1',   getContent: () => elCorrected.innerText || '' },
+        { key: 'improved',  label: 'IMPROVED v2',    getContent: () => elImproved.innerText  || '' },
+        { key: 'polished',  label: 'POLISHED v3',    getContent: () => elPolished.innerText  || '', default: true }
       ]
     });
   }
+
+  // Wire output color pickers — output only, input stays clean
+  mountOutputColorPicker($('#color-corrected', root), elCorrected);
+  mountOutputColorPicker($('#color-improved',  root), elImproved);
+  mountOutputColorPicker($('#color-polished',  root), elPolished);
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
@@ -145,15 +150,16 @@ export default async function init({ root, module }) {
 
   // Copy / download per version
   $$('[data-copy]', root).forEach(b => b.addEventListener('click', () => {
-    const v = state.last?.[b.dataset.copy];
-    if (!v) { toast('Run analyze first'); return; }
-    copyToClipboard(v);
+    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.copy];
+    const text = el?.innerText || state.last?.[b.dataset.copy] || '';
+    if (!text) { toast('Run analyze first'); return; }
+    copyToClipboard(text);
   }));
   $$('[data-dl]', root).forEach(b => b.addEventListener('click', () => {
-    const k = b.dataset.dl;
-    const v = state.last?.[k];
-    if (!v) { toast('Run analyze first'); return; }
-    downloadFile(gFileName('EMAIL', 'EM'), `Subject: ${state.subject || ''}\n\n${v}`, 'text/plain');
+    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.dl];
+    const text = el?.innerText || state.last?.[b.dataset.dl] || '';
+    if (!text) { toast('Run analyze first'); return; }
+    downloadFile(gFileName('EMAIL', 'EM'), `Subject: ${state.subject || ''}\n\n${text}`, 'text/plain');
   }));
 
   function showNoRouteHelp() {
