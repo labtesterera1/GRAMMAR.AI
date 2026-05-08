@@ -2,7 +2,7 @@
    PARAGRAPH MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -63,7 +63,7 @@ export default async function init({ root, module }) {
 
   elInput.value = state.draft;
   if (state.lastOutput) {
-    elOutput.textContent = state.lastOutput;
+    elOutput.innerHTML = renderMd(state.lastOutput);
     elOutput.classList.remove('placeholder');
     showSendOut();
   }
@@ -146,9 +146,12 @@ export default async function init({ root, module }) {
   }
 
   async function correctParagraph() {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type or paste a paragraph first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type or paste a paragraph first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    // Strip color tags before sending to AI
+    const text = stripColorTags(raw);
 
     const modes = prompts.paragraph_modes || {};
     const modeText = modes[state.mode] || modes.correct;
@@ -163,7 +166,7 @@ export default async function init({ root, module }) {
         { role: 'system', content: prompts.paragraph_system || 'You are an expert grammar corrector.' },
         { role: 'user',   content: modeText + '\n\nParagraph:\n"' + text + '"' }
       ], { temperature: 0.5, maxTokens: 2500 });
-      elOutput.textContent = r.text;
+      elOutput.innerHTML = renderMd(r.text);
       state.lastOutput = r.text;
       SCOPE.set('lastOutput', state.lastOutput);
       showSendOut();
@@ -178,9 +181,10 @@ export default async function init({ root, module }) {
   }
 
   async function quickAction(promptKey, busyMsg) {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const text = stripColorTags(raw);
     toast(busyMsg);
     try {
       const r = await AI.chat([
@@ -198,8 +202,9 @@ export default async function init({ root, module }) {
   }
 
   function quickTranslate() {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type something first'); return; }
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something first'); return; }
+    const text = stripColorTags(raw);
     const isHindi = /[\u0900-\u097F]/.test(text);
     quickAction(isHindi ? 'quick_translate_hi2en' : 'quick_translate_en2hi', isHindi ? 'Hindi → English…' : 'English → Hindi…');
   }
