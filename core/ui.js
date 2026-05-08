@@ -125,7 +125,130 @@ export function timeAgo(ts) {
 
 export function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
-/* ─── Strip color tags before sending to AI ───────────────
+/* ─── OUTPUT COLOR PICKER ─────────────────────────────────────────
+   mountOutputColorPicker(btn, outputEl)
+   Applies colors to selected text in OUTPUT divs only.
+   Input textareas are never touched. Colors are visual-only —
+   stripped automatically on download/share via .innerText.
+   ─────────────────────────────────────────────────────────────── */
+const OUTPUT_COLORS = {
+  highlight: [
+    { key: 'hl-yellow', label: 'Yellow', bg: '#f5e642', fg: '#000' },
+    { key: 'hl-blue',   label: 'Blue',   bg: '#42a8f5', fg: '#fff' },
+    { key: 'hl-green',  label: 'Green',  bg: '#42f57e', fg: '#000' },
+    { key: 'hl-pink',   label: 'Pink',   bg: '#f542b0', fg: '#fff' }
+  ],
+  text: [
+    { key: 'tx-lime',   label: 'Lime',   color: '#d4ff3a' },
+    { key: 'tx-red',    label: 'Red',    color: '#c97a5a' },
+    { key: 'tx-blue',   label: 'Blue',   color: '#42a8f5' },
+    { key: 'tx-muted',  label: 'Muted',  color: '#8a8479' }
+  ]
+};
+
+export function mountOutputColorPicker(btn, outputEl) {
+  if (!btn || !outputEl) return;
+  btn.addEventListener('click', () => {
+    const sel = window.getSelection();
+    const hasSelection = sel && sel.rangeCount > 0 && !sel.isCollapsed;
+    if (!hasSelection) {
+      toast('Select text in the output box first, then tap 🎨');
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    if (!outputEl.contains(range.commonAncestorContainer)) {
+      toast('Select text inside the output box first');
+      return;
+    }
+    // Save range BEFORE sheet opens — opening sheet clears selection
+    const savedRange = range.cloneRange();
+
+    openSheet(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-inner">
+        <div class="kicker"><span>COLOR</span><span class="lime">OUTPUT ONLY · INPUT STAYS CLEAN</span></div>
+        <div class="sheet-title">Color picker</div>
+        <div class="s-ttl" style="margin-top:0;"><span>HIGHLIGHT</span></div>
+        <div class="color-swatches">
+          ${OUTPUT_COLORS.highlight.map(c => `
+            <button class="color-swatch" data-oc="hl" data-ockey="${esc(c.key)}"
+              style="background:${esc(c.bg)};color:${esc(c.fg)};" title="${esc(c.label)}">
+              ${esc(c.label)}
+            </button>
+          `).join('')}
+        </div>
+        <div class="s-ttl"><span>TEXT COLOR</span></div>
+        <div class="color-swatches">
+          ${OUTPUT_COLORS.text.map(c => `
+            <button class="color-swatch color-swatch-text" data-oc="tx" data-ockey="${esc(c.key)}"
+              style="border-color:${esc(c.color)};color:${esc(c.color)};" title="${esc(c.label)}">
+              ${esc(c.label)}
+            </button>
+          `).join('')}
+        </div>
+        <button class="btn btn-rust mt-8" id="oc-clear" style="width:100%;">✕ CLEAR ALL COLORS</button>
+        <button class="btn mt-8" style="width:100%;" id="oc-close">CLOSE</button>
+        <div class="mono dim" style="font-size:9px;line-height:1.6;margin-top:8px;letter-spacing:0.06em;">
+          Colors are visual only. Download and share always send clean text.
+        </div>
+      </div>
+    `);
+
+    setTimeout(() => {
+      // Highlight
+      document.querySelectorAll('[data-oc="hl"][data-ockey]').forEach(b => {
+        b.addEventListener('click', () => {
+          const col = OUTPUT_COLORS.highlight.find(c => c.key === b.dataset.ockey);
+          if (col) {
+            applyColorToRange(savedRange, `background:${col.bg};color:${col.fg};padding:0 2px;border-radius:2px;`);
+          }
+          closeSheet();
+        });
+      });
+      // Text color
+      document.querySelectorAll('[data-oc="tx"][data-ockey]').forEach(b => {
+        b.addEventListener('click', () => {
+          const col = OUTPUT_COLORS.text.find(c => c.key === b.dataset.ockey);
+          if (col) {
+            applyColorToRange(savedRange, `color:${col.color};font-weight:500;`);
+          }
+          closeSheet();
+        });
+      });
+      document.getElementById('oc-clear')?.addEventListener('click', () => {
+        clearOutputColors(outputEl);
+        closeSheet();
+        toast('Colors cleared');
+      });
+      document.getElementById('oc-close')?.addEventListener('click', closeSheet);
+    }, 60);
+  });
+}
+
+function applyColorToRange(range, style) {
+  const span = document.createElement('span');
+  span.style.cssText = style;
+  span.className = 'output-color';
+  try {
+    range.surroundContents(span);
+  } catch {
+    // Selection crosses element boundaries — extract and wrap
+    const fragment = range.extractContents();
+    span.appendChild(fragment);
+    range.insertNode(span);
+  }
+  window.getSelection()?.removeAllRanges();
+}
+
+function clearOutputColors(el) {
+  el.querySelectorAll('.output-color').forEach(span => {
+    const parent = span.parentNode;
+    while (span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+  });
+}
+
+/* ─── Strip color tags before sending to AI ─────────────────────
    The AI shouldn't see [[hl-pink]]hello[[/]] — strip them.
    Bold/italic/highlight markdown also stripped to avoid AI treating
    them as part of grammar content.
