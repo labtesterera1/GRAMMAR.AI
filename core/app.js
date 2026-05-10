@@ -8,8 +8,8 @@
    - Keyboard shortcuts: '/' focus, 'Esc' close sheets, 'g h', 'g s'
    ──────────────────────────────────────────────────────────────── */
 
-import { $, esc } from './ui.js';
-import { Storage, requestPersist, isPersisted } from './storage.js';
+import { $, esc, toast } from './ui.js';
+import { Storage, requestPersist, isPersisted, checkBackupReminder } from './storage.js';
 import { AI } from './ai.js';
 import { loadModulesConfig, getModules, getModule, mountModule } from './loader.js';
 import { parseRoute, onChange, go } from './router.js';
@@ -78,6 +78,13 @@ async function boot() {
   if (!persisted && navigator.storage?.persist) {
     requestPersist().catch(() => {});
   }
+
+  // Backup reminder — show after 7 days without export
+  setTimeout(() => {
+    if (checkBackupReminder()) {
+      toast('⚠ No backup in 7+ days — go to Settings → Export to protect your data', 'error');
+    }
+  }, 3000);
 
   // Keyboard shortcuts (desktop)
   setupShortcuts();

@@ -4,6 +4,19 @@
 
 const NS = 'gai.';
 
+/* ─── Module key prefixes — defines what each module owns ─── */
+const MODULE_PREFIXES = {
+  chat:       ['chat.'],
+  paragraph:  ['paragraph.'],
+  email:      ['email.'],
+  translator: ['translator.'],
+  exercise:   ['exercise.'],
+  notes:      ['notes.'],
+  rewrite:    ['rewrite.'],
+  timezone:   ['timezone.'],
+  settings:   ['workerUrl','mode','primary','key.','lang','fn.']
+};
+
 export const Storage = {
   get(key, fallback = null) {
     try {
@@ -34,10 +47,115 @@ export const Storage = {
     return out;
   },
 
+  /* ─── Raw snapshot (all keys) ─── */
   snapshot() {
     const dump = {};
     for (const k of this.keys()) dump[k] = this.get(k, null);
     return dump;
+  },
+
+  /* ─── Structured backup — clean per-module JSON ─── */
+  structuredBackup(opts = {}) {
+    const includeKeys  = opts.includeKeys  !== false;  // settings keys default true
+    const includePinHash = opts.includePinHash !== false; // notes pin default true
+    const allKeys = this.keys();
+
+    function keysFor(prefixes) {
+      return allKeys.filter(k => prefixes.some(p => k.startsWith(p)));
+    }
+
+    function pickModule(prefixes) {
+      const obj = {};
+      for (const k of keysFor(prefixes)) {
+        // Skip API keys if not wanted
+        if (!includeKeys && k.startsWith('key.')) continue;
+        // Skip PIN hash if not wanted
+        if (!includePinHash && k === 'notes.pinHash') continue;
+        obj[k] = Storage.get(k, null);
+      }
+      return obj;
+    }
+
+    const now = new Date();
+    return {
+      _meta: {
+        app:        'Grammar.AI',
+        version:    Storage.get('version', '1.3.7') || '1.3.7',
+        exportedAt: now.toISOString(),
+        exportedOn: now.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' }),
+        device:     navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+      },
+      modules: {
+        chat:       pickModule(MODULE_PREFIXES.chat),
+        paragraph:  pickModule(MODULE_PREFIXES.paragraph),
+        email:      pickModule(MODULE_PREFIXES.email),
+        translator: pickModule(MODULE_PREFIXES.translator),
+        exercise:   pickModule(MODULE_PREFIXES.exercise),
+        notes:      pickModule(MODULE_PREFIXES.notes),
+        rewrite:    pickModule(MODULE_PREFIXES.rewrite),
+        timezone:   pickModule(MODULE_PREFIXES.timezone),
+      },
+      settings:   pickModule(MODULE_PREFIXES.settings)
+    };
+  },
+
+  /* ─── Restore from structured backup ─── */
+  restoreStructured(backup, opts = {}) {
+    if (!backup || !backup.modules) throw new Error('Invalid backup format');
+    const mode = opts.mode || 'full'; // full | merge | settings-only | notes-only
+
+    function applyModule(moduleData) {
+      if (!moduleData || typeof moduleData !== 'object') return;
+      for (const [k, v] of Object.entries(moduleData)) {
+        // Skip API keys unless explicitly included
+        if (!opts.includeKeys && k.startsWith('key.')) continue;
+        Storage.set(k, v);
+      }
+    }
+
+    if (mode === 'settings-only') {
+      applyModule(backup.settings);
+      return;
+    }
+
+    if (mode === 'notes-only') {
+      applyModule(backup.modules.notes);
+      return;
+    }
+
+    if (mode === 'merge') {
+      // Merge notes — append imported notes to existing, avoid duplicates by id
+      const existing = Storage.scope('notes').get('notes', []);
+      const imported = backup.modules.notes?.['notes.notes'] || [];
+      const existingIds = new Set(existing.map(n => n.id));
+      const merged = [...existing, ...imported.filter(n => !existingIds.has(n.id))];
+      Storage.scope('notes').set('notes', merged);
+
+      // Merge chat history
+      const existingChat = Storage.scope('chat').get('history', []);
+      const importedChat = backup.modules.chat?.['chat.history'] || [];
+      const existingTs = new Set(existingChat.map(m => m.ts));
+      const mergedChat = [...existingChat, ...importedChat.filter(m => !existingTs.has(m.ts))];
+      Storage.scope('chat').set('history', mergedChat);
+
+      // Merge translator history
+      const existingTr = Storage.scope('translator').get('history', []);
+      const importedTr = backup.modules.translator?.['translator.history'] || [];
+      const existingTrTs = new Set(existingTr.map(m => m.ts));
+      const mergedTr = [...existingTr, ...importedTr.filter(m => !existingTrTs.has(m.ts))];
+      Storage.scope('translator').set('history', mergedTr);
+
+      // Apply other modules fully (paragraph, email, exercise, rewrite, timezone, settings)
+      for (const mod of ['paragraph','email','exercise','rewrite','timezone']) {
+        applyModule(backup.modules[mod]);
+      }
+      applyModule(backup.settings);
+      return;
+    }
+
+    // Full restore — apply everything
+    for (const mod of Object.values(backup.modules)) applyModule(mod);
+    applyModule(backup.settings);
   },
 
   restore(snapshot) {
@@ -51,13 +169,26 @@ export const Storage = {
 
   scope(prefix) {
     return {
-      get: (key, fallback = null) => Storage.get(`${prefix}.${key}`, fallback),
-      set: (key, value) => Storage.set(`${prefix}.${key}`, value),
-      remove: (key) => Storage.remove(`${prefix}.${key}`),
-      keys: () => Storage.keys().filter(k => k.startsWith(`${prefix}.`)).map(k => k.slice(prefix.length + 1))
+      get:    (key, fallback = null) => Storage.get(`${prefix}.${key}`, fallback),
+      set:    (key, value)           => Storage.set(`${prefix}.${key}`, value),
+      remove: (key)                  => Storage.remove(`${prefix}.${key}`),
+      keys:   ()                     => Storage.keys().filter(k => k.startsWith(`${prefix}.`)).map(k => k.slice(prefix.length + 1))
     };
   }
 };
+
+/* ─── Backup reminder — nudge every 7 days ─── */
+export function checkBackupReminder() {
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const last = Storage.get('lastBackupAt', null);
+  if (!last) return true; // never backed up
+  return (Date.now() - new Date(last).getTime()) > SEVEN_DAYS;
+}
+
+export function markBackupDone() {
+  Storage.set('lastBackupAt', new Date().toISOString());
+}
+
 
 /* ─── Persistent Storage API ─────────────────────────────────── */
 

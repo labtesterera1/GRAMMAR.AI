@@ -5,7 +5,8 @@
 
 import { esc, $, $$, toast, downloadFile, pickFile, readFileAsText } from './ui.js';
 import { AI } from './ai.js';
-import { Storage, isPersisted, requestPersist, storageEstimate, fmtBytes } from './storage.js';
+import { Storage, isPersisted, requestPersist, storageEstimate, fmtBytes, checkBackupReminder, markBackupDone } from './storage.js';
+import { gFileName } from './ui.js';
 
 let _versionInfo = null;
 export function setVersionInfo(v) { _versionInfo = v; }
@@ -151,18 +152,58 @@ export async function renderSettings(host) {
           <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
           <div class="set-card-hd">
             <span class="set-card-hd-l">DATA · BACKUP &amp; RESTORE</span>
+            <span class="prov-badge ${checkBackupReminder() ? 'rust' : 'lime'}" id="backup-status">
+              ${checkBackupReminder() ? '⚠ BACKUP NEEDED' : '● BACKED UP'}
+            </span>
           </div>
-          <div class="mono" style="font-size:10px;color:var(--muted);letter-spacing:0.08em;margin-bottom:12px;">
-            Files saved as: <span class="lime" id="export-fname-preview">${esc(exportFilename())}</span>
+
+          <!-- What's included -->
+          <div class="backup-modules-grid">
+            ${['Chat','Paragraph','Email','Translator','Exercise','Notes','Rewrite','Settings'].map(m => `
+              <span class="backup-module-tag">✓ ${esc(m)}</span>
+            `).join('')}
           </div>
+
+          <!-- Export options -->
+          <div class="s-ttl" style="margin-top:14px;"><span>EXPORT</span></div>
           <div class="row gap-12" style="flex-wrap:wrap;">
-            <button class="btn flex-1" id="data-export" style="min-width:160px;">⬇ EXPORT JSON</button>
-            <button class="btn flex-1" id="data-import" style="min-width:160px;">⬆ IMPORT JSON</button>
-            <button class="btn btn-rust flex-1" id="data-clear" style="min-width:160px;">⚠ CLEAR ALL</button>
+            <button class="btn btn-primary flex-1" id="data-export-all" style="min-width:160px;">
+              ⬇ EXPORT ALL MODULES
+            </button>
+            <button class="btn flex-1" id="data-export-notes" style="min-width:140px;">
+              ⬇ NOTES ONLY
+            </button>
+            <button class="btn flex-1" id="data-export-settings" style="min-width:160px;">
+              ⬇ SETTINGS ONLY
+            </button>
           </div>
-          <div class="mode-help">
-            Export creates a single JSON file with every setting, key, draft, note, and history on this device.
+          <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
+            API keys are NOT included in export for security. Re-enter them once per device.
           </div>
+
+          <!-- Import options -->
+          <div class="s-ttl" style="margin-top:14px;"><span>IMPORT / RESTORE</span></div>
+          <div class="row gap-12" style="flex-wrap:wrap;">
+            <button class="btn flex-1" id="data-import-full" style="min-width:140px;">
+              ⬆ FULL RESTORE
+            </button>
+            <button class="btn flex-1" id="data-import-merge" style="min-width:140px;">
+              ⬆ MERGE
+            </button>
+            <button class="btn flex-1" id="data-import-notes" style="min-width:140px;">
+              ⬆ NOTES ONLY
+            </button>
+            <button class="btn flex-1" id="data-import-settings" style="min-width:160px;">
+              ⬆ SETTINGS ONLY
+            </button>
+          </div>
+          <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
+            FULL RESTORE replaces everything. MERGE adds imported notes/chat to existing without overwriting.
+          </div>
+
+          <!-- Danger zone -->
+          <div class="s-ttl" style="margin-top:14px;"><span>DANGER ZONE</span></div>
+          <button class="btn btn-rust" id="data-clear" style="width:100%;">⚠ CLEAR ALL DATA</button>
         </div>
 
         <!-- ─── ABOUT ─────────────────────────────────────── -->
@@ -265,38 +306,84 @@ export async function renderSettings(host) {
   $('#storage-refresh', host).addEventListener('click', () => refreshStorage(host));
 
   /* ─── Data ─── */
-  $('#data-export', host).addEventListener('click', () => {
-    const dump = {
-      _meta: {
-        app: 'Grammar.AI',
-        version: v.version,
-        scope: 'AllModules',
-        exportedAt: new Date().toISOString()
-      },
-      data: Storage.snapshot()
-    };
-    downloadFile(exportFilename('AllModules'), JSON.stringify(dump, null, 2), 'application/json');
-  });
+  /* ─── Structured Export ─── */
+  function doExport(mode = 'all') {
+    let backup, filename, label;
+    if (mode === 'all') {
+      backup   = Storage.structuredBackup({ includeKeys: false, includePinHash: true });
+      filename = gFileName('BACKUP', 'BK', 'json');
+      label    = 'All modules exported';
+    } else if (mode === 'notes') {
+      const nb = Storage.structuredBackup({ includeKeys: false });
+      backup   = { _meta: { ...nb._meta, scope: 'Notes' }, modules: { notes: nb.modules.notes } };
+      filename = gFileName('BACKUP', 'BK', 'json');
+      label    = 'Notes exported';
+    } else if (mode === 'settings') {
+      const nb = Storage.structuredBackup({ includeKeys: false });
+      backup   = { _meta: { ...nb._meta, scope: 'Settings' }, settings: nb.settings };
+      filename = gFileName('BACKUP', 'BK', 'json');
+      label    = 'Settings exported';
+    }
+    downloadFile(filename, JSON.stringify(backup, null, 2), 'application/json');
+    markBackupDone();
+    // Refresh badge
+    const badge = document.getElementById('backup-status');
+    if (badge) { badge.textContent = '● BACKED UP'; badge.className = 'prov-badge lime'; }
+    toast(label + ' → ' + filename, 'success');
+  }
 
-  $('#data-import', host).addEventListener('click', async () => {
+  $('#data-export-all',      host).addEventListener('click', () => doExport('all'));
+  $('#data-export-notes',    host).addEventListener('click', () => doExport('notes'));
+  $('#data-export-settings', host).addEventListener('click', () => doExport('settings'));
+
+  /* ─── Structured Import ─── */
+  async function doImport(mode) {
+    const modeLabels = {
+      full:          'Full Restore — replaces ALL existing data',
+      merge:         'Merge — adds imported notes/chat without overwriting existing',
+      'notes-only':  'Notes Only — restores notes vault only',
+      'settings-only': 'Settings Only — restores settings only'
+    };
     const f = await pickFile('application/json,.json');
     if (!f) return;
     try {
-      const txt = await readFileAsText(f);
-      const obj = JSON.parse(txt);
-      const data = obj.data || obj;
-      if (!confirm('Import will overwrite existing data with the backup. Continue?')) return;
-      Storage.restore(data);
-      toast('Data imported · reloading', 'success');
-      setTimeout(() => location.reload(), 700);
+      const txt  = await readFileAsText(f);
+      const obj  = JSON.parse(txt);
+
+      // Support both old raw dump and new structured format
+      const isStructured = !!obj.modules;
+      if (!isStructured && mode !== 'full') {
+        toast('This is an old format backup — only Full Restore supported', 'error');
+        return;
+      }
+
+      const confirm1 = confirm(`${modeLabels[mode]}\n\nBackup from: ${obj._meta?.exportedOn || 'unknown date'}\n\nContinue?`);
+      if (!confirm1) return;
+
+      if (isStructured) {
+        Storage.restoreStructured(obj, { mode, includeKeys: false });
+      } else {
+        // Old format — raw dump restore
+        const data = obj.data || obj;
+        Storage.restore(data);
+      }
+
+      toast(`${modeLabels[mode]} complete — reloading`, 'success');
+      setTimeout(() => location.reload(), 800);
     } catch (e) {
       toast('Import failed: ' + e.message, 'error');
     }
-  });
+  }
 
+  $('#data-import-full',     host).addEventListener('click', () => doImport('full'));
+  $('#data-import-merge',    host).addEventListener('click', () => doImport('merge'));
+  $('#data-import-notes',    host).addEventListener('click', () => doImport('notes-only'));
+  $('#data-import-settings', host).addEventListener('click', () => doImport('settings-only'));
+
+  /* ─── Clear all ─── */
   $('#data-clear', host).addEventListener('click', () => {
-    if (!confirm('Permanently delete ALL data — keys, notes, history, drafts. Are you sure?')) return;
-    if (!confirm('Final confirmation. Delete everything?')) return;
+    if (!confirm('Permanently delete ALL data — notes, history, drafts, settings. Are you sure?')) return;
+    if (!confirm('Final confirmation. This cannot be undone. Delete everything?')) return;
     Storage.clearAll();
     toast('All data cleared · reloading', 'success');
     setTimeout(() => location.reload(), 700);
