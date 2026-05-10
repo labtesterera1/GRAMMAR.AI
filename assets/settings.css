@@ -246,3 +246,21 @@
   .set-card.full { grid-column: 1 / -1; }
   .set-card { padding: 18px 20px 22px; }
 }
+
+/* ─── Backup module grid ─── */
+.backup-modules-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.backup-module-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lime);
+  border: 0.5px solid var(--lime-dim);
+  background: var(--lime-soft);
+  padding: 2px 8px;
+}
