@@ -3,7 +3,7 @@
    Sub-tabs: tense / flash / vocab / story
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -553,6 +553,10 @@ export default async function init({ root, module }) {
     if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
+
+  mountModuleBackup($('#ex-module-backup', root), {
+    moduleId: 'exercise', moduleCode: 'EX', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); }
