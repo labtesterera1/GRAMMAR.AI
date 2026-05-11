@@ -1,24 +1,25 @@
 {
   "id": "timezone",
   "name": "Timezone",
-  "version": "1.0.0",
-  "description": "Convert times across zones with live world clock.",
+  "version": "1.1.0",
+  "description": "Convert times across zones with live world clock. CDT/CST ↔ IST dedicated converter.",
   "icon": "🕐",
   "options": {
     "zones": [
-      { "value": "Asia/Kolkata",       "label": "🇮🇳 India (IST)" },
-      { "value": "UTC",                "label": "🌐 UTC" },
-      { "value": "America/New_York",   "label": "🇺🇸 New York" },
-      { "value": "America/Los_Angeles","label": "🇺🇸 Los Angeles" },
-      { "value": "America/Chicago",    "label": "🇺🇸 Chicago" },
-      { "value": "Europe/London",      "label": "🇬🇧 London" },
-      { "value": "Europe/Paris",       "label": "🇫🇷 Paris" },
-      { "value": "Europe/Berlin",      "label": "🇩🇪 Berlin" },
-      { "value": "Asia/Dubai",         "label": "🇦🇪 Dubai" },
-      { "value": "Asia/Singapore",     "label": "🇸🇬 Singapore" },
-      { "value": "Asia/Tokyo",         "label": "🇯🇵 Tokyo" },
-      { "value": "Asia/Shanghai",      "label": "🇨🇳 Shanghai" },
-      { "value": "Australia/Sydney",   "label": "🇦🇺 Sydney" }
+      { "value": "Asia/Kolkata",        "label": "🇮🇳 India (IST)" },
+      { "value": "UTC",                 "label": "🌐 UTC" },
+      { "value": "America/New_York",    "label": "🇺🇸 New York (ET)" },
+      { "value": "America/Los_Angeles", "label": "🇺🇸 Los Angeles (PT)" },
+      { "value": "America/Chicago",     "label": "🇺🇸 Chicago (CDT/CST)" },
+      { "value": "America/Denver",      "label": "🇺🇸 Denver (MT)" },
+      { "value": "Europe/London",       "label": "🇬🇧 London (GMT/BST)" },
+      { "value": "Europe/Paris",        "label": "🇫🇷 Paris (CET)" },
+      { "value": "Europe/Berlin",       "label": "🇩🇪 Berlin (CET)" },
+      { "value": "Asia/Dubai",          "label": "🇦🇪 Dubai (GST)" },
+      { "value": "Asia/Singapore",      "label": "🇸🇬 Singapore (SGT)" },
+      { "value": "Asia/Tokyo",          "label": "🇯🇵 Tokyo (JST)" },
+      { "value": "Asia/Shanghai",       "label": "🇨🇳 Shanghai (CST)" },
+      { "value": "Australia/Sydney",    "label": "🇦🇺 Sydney (AEST)" }
     ],
     "worldClock": [
       { "name": "India",     "zone": "Asia/Kolkata",     "flag": "🇮🇳" },
@@ -27,6 +28,53 @@
       { "name": "Dubai",     "zone": "Asia/Dubai",       "flag": "🇦🇪" },
       { "name": "Singapore", "zone": "Asia/Singapore",   "flag": "🇸🇬" },
       { "name": "Tokyo",     "zone": "Asia/Tokyo",       "flag": "🇯🇵" }
+    ],
+    "cdtCstCities": [
+      {
+        "group": "US CITIES — CDT/CST (DST applies)",
+        "cities": [
+          { "name": "Austin, Texas", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Chicago, Illinois", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Dallas, Texas", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Houston, Texas", "country": "USA", "zone": "America/Chicago" },
+          { "name": "San Antonio, Texas", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Minneapolis, Minnesota", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Kansas City, Missouri", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Memphis, Tennessee", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Milwaukee, Wisconsin", "country": "USA", "zone": "America/Chicago" },
+          { "name": "New Orleans, Louisiana", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Oklahoma City, Oklahoma", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Omaha, Nebraska", "country": "USA", "zone": "America/Chicago" },
+          { "name": "St. Louis, Missouri", "country": "USA", "zone": "America/Chicago" },
+          { "name": "Nashville, Tennessee", "country": "USA", "zone": "America/Chicago" }
+        ]
+      },
+      {
+        "group": "CANADA",
+        "cities": [
+          { "name": "Winnipeg, Manitoba", "country": "Canada", "zone": "America/Winnipeg" },
+          { "name": "Regina, Saskatchewan", "country": "Canada", "zone": "America/Regina", "note": "CST only — no DST" }
+        ]
+      },
+      {
+        "group": "MEXICO",
+        "cities": [
+          { "name": "Mexico City", "country": "Mexico", "zone": "America/Mexico_City" },
+          { "name": "Guadalajara", "country": "Mexico", "zone": "America/Mexico_City" },
+          { "name": "Monterrey", "country": "Mexico", "zone": "America/Monterrey" }
+        ]
+      },
+      {
+        "group": "YEAR-ROUND CST — No DST",
+        "cities": [
+          { "name": "Belize City", "country": "Belize", "zone": "America/Belize" },
+          { "name": "Guatemala City", "country": "Guatemala", "zone": "America/Guatemala" },
+          { "name": "San Salvador", "country": "El Salvador", "zone": "America/El_Salvador" },
+          { "name": "Tegucigalpa", "country": "Honduras", "zone": "America/Tegucigalpa" },
+          { "name": "Managua", "country": "Nicaragua", "zone": "America/Managua" },
+          { "name": "San José", "country": "Costa Rica", "zone": "America/Costa_Rica" }
+        ]
+      }
     ]
   }
 }

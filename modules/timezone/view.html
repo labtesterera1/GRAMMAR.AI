@@ -5,7 +5,7 @@
   </div>
   <div class="headline">Timezone</div>
   <div class="subline">
-    <span>CONVERT · WORLD · CLOCK</span>
+    <span>CONVERT · CDT/CST · WORLD</span>
     <span id="tz-localnow">—</span>
   </div>
   <div class="ticks">
@@ -16,55 +16,98 @@
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
-  <!-- Result panel -->
-  <div class="frame subtle tz-result mt-12">
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+  <div class="lang-chips" id="tz-tabs">
+    <button class="chip on" data-tztab="convert">CONVERT</button>
+    <button class="chip"    data-tztab="cdtcst">CDT/CST ↔ IST</button>
+    <button class="chip"    data-tztab="world">WORLD CLOCK</button>
+  </div>
 
-    <div class="tz-zone">
-      <div class="tz-from-row">
+  <!-- CONVERT -->
+  <div class="tz-sub" data-tzsub="convert">
+    <div class="frame subtle tz-result mt-12">
+      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      <div class="tz-zone">
         <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:0.18em;">FROM</div>
         <div class="serif tz-time" id="tz-from-time">—:—</div>
         <div class="mono" id="tz-from-label" style="font-size:11px;color:var(--muted);">—</div>
-        <div class="mono" id="tz-from-date" style="font-size:10px;color:var(--dim);"></div>
+        <div class="mono" id="tz-from-date"  style="font-size:10px;color:var(--dim);"></div>
       </div>
-    </div>
-
-    <div class="tz-divider"></div>
-
-    <div class="tz-zone">
-      <div class="tz-to-row">
+      <div class="tz-divider"></div>
+      <div class="tz-zone">
         <div class="mono lime" style="font-size:9px;letter-spacing:0.18em;">TO</div>
         <div class="serif tz-time lime" id="tz-to-time">—:—</div>
         <div class="mono" id="tz-to-label" style="font-size:11px;color:var(--text);">—</div>
-        <div class="mono" id="tz-to-date" style="font-size:10px;color:var(--dim);"></div>
+        <div class="mono" id="tz-to-date"  style="font-size:10px;color:var(--dim);"></div>
       </div>
     </div>
-  </div>
-
-  <!-- Controls -->
-  <div class="s-ttl"><span>CONVERT</span></div>
-
-  <div class="row gap-12" style="align-items:flex-end;">
-    <div style="flex:1;">
-      <div class="field-label">FROM</div>
-      <select class="select" id="tz-from"></select>
+    <div class="s-ttl"><span>CONVERT</span></div>
+    <div class="row gap-12" style="align-items:flex-end;">
+      <div style="flex:1;"><div class="field-label">FROM</div><select class="select" id="tz-from"></select></div>
+      <button class="btn btn-icon" id="tz-swap">⇄</button>
+      <div style="flex:1;"><div class="field-label">TO</div><select class="select" id="tz-to"></select></div>
     </div>
-    <button class="btn btn-icon" id="tz-swap" title="Swap">⇄</button>
-    <div style="flex:1;">
-      <div class="field-label">TO</div>
-      <select class="select" id="tz-to"></select>
+    <div class="row gap-12 mt-12" style="align-items:flex-end;">
+      <div style="flex:1;"><div class="field-label">DATE &amp; TIME</div><input type="datetime-local" class="input" id="tz-datetime"/></div>
+      <button class="btn" id="tz-now">NOW</button>
     </div>
   </div>
 
-  <div class="row gap-12 mt-12" style="align-items:flex-end;">
-    <div style="flex:1;">
-      <div class="field-label">DATE &amp; TIME</div>
-      <input type="datetime-local" class="input" id="tz-datetime" />
+  <!-- CDT/CST ↔ IST -->
+  <div class="tz-sub hide" data-tzsub="cdtcst">
+
+    <div class="row gap-12 mt-12">
+      <div class="frame subtle flex-1" style="padding:12px 14px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono lime" style="font-size:9px;letter-spacing:0.16em;margin-bottom:4px;">CDT</div>
+        <div class="mono" style="font-size:11px;color:var(--text);">Central Daylight Time</div>
+        <div class="mono" style="font-size:9px;color:var(--muted);line-height:1.55;margin-top:4px;">UTC−5 · Mar→Nov<br>US/Canada Summer</div>
+      </div>
+      <div class="frame subtle flex-1" style="padding:12px 14px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono lime" style="font-size:9px;letter-spacing:0.16em;margin-bottom:4px;">CST</div>
+        <div class="mono" style="font-size:11px;color:var(--text);">Central Standard Time</div>
+        <div class="mono" style="font-size:9px;color:var(--muted);line-height:1.55;margin-top:4px;">UTC−6 · Nov→Mar<br>US/Canada Winter</div>
+      </div>
     </div>
-    <button class="btn" id="tz-now">NOW</button>
+
+    <div class="s-ttl mt-12"><span>DIRECTION</span></div>
+    <div class="rw-mode-row">
+      <button class="rw-mode-btn on" data-cdtdir="cdt2ist">CDT/CST → IST</button>
+      <button class="rw-mode-btn"    data-cdtdir="ist2cdt">IST → CDT/CST</button>
+    </div>
+
+    <div class="s-ttl"><span>SELECT CITY</span></div>
+    <select class="select" id="cdt-city" style="width:100%;"></select>
+    <div class="mono" style="font-size:9px;color:var(--dim);margin-top:4px;letter-spacing:0.06em;" id="cdt-city-note"></div>
+
+    <div class="s-ttl"><span>DATE &amp; TIME</span></div>
+    <div class="row gap-12" style="align-items:flex-end;">
+      <div style="flex:1;"><div class="field-label">DATE</div><input type="date" class="input" id="cdt-date"/></div>
+      <div style="flex:1;"><div class="field-label">TIME</div><input type="time" class="input" id="cdt-time"/></div>
+      <button class="btn" id="cdt-now">NOW</button>
+    </div>
+
+    <div class="frame subtle mt-12" id="cdt-result" style="padding:16px 18px;">
+      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:0.18em;">FROM</div>
+      <div class="serif" style="font-size:32px;line-height:1.1;margin:4px 0;" id="cdt-from-time">—</div>
+      <div class="mono" style="font-size:11px;color:var(--text);" id="cdt-from-label">—</div>
+      <div class="mono" style="font-size:10px;color:var(--dim);margin-top:2px;" id="cdt-from-date">—</div>
+      <div class="mono" style="font-size:9px;margin-top:6px;padding:3px 8px;background:var(--surface-2);display:inline-block;" id="cdt-active-note">—</div>
+
+      <div class="ticks mt-10 mb-10"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+      <div class="mono lime" style="font-size:9px;letter-spacing:0.18em;" id="cdt-to-heading">TO — INDIA (IST · UTC+5:30)</div>
+      <div class="serif lime" style="font-size:32px;line-height:1.1;margin:4px 0;" id="cdt-to-time">—</div>
+      <div class="mono" style="font-size:11px;color:var(--text);" id="cdt-to-label">—</div>
+      <div class="mono" style="font-size:10px;color:var(--dim);margin-top:2px;" id="cdt-to-date">—</div>
+    </div>
   </div>
 
-  <!-- World clock -->
-  <div class="s-ttl"><span>WORLD CLOCK</span><span class="lime">● LIVE</span></div>
-  <div class="world-clock" id="world-clock"></div>
+  <!-- WORLD CLOCK -->
+  <div class="tz-sub hide" data-tzsub="world">
+    <div class="s-ttl mt-12"><span>WORLD CLOCK</span><span class="lime">● LIVE</span></div>
+    <div class="world-clock" id="world-clock"></div>
+  </div>
+
 </div>
