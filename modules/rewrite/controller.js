@@ -6,7 +6,7 @@
    SEND OUT: INPUT / individual / ALL selector + gFileName
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -454,6 +454,10 @@ Return ONLY the JSON object.`;
     else if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
+
+  mountModuleBackup($('#rw-module-backup', root), {
+    moduleId: 'rewrite', moduleCode: 'RW', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); },
