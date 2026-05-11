@@ -125,6 +125,72 @@ export function timeAgo(ts) {
 
 export function uid() { return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8); }
 
+/* ─── PER-MODULE BACKUP ──────────────────────────────────────────
+   mountModuleBackup(container, { moduleId, moduleCode, scope })
+   Renders compact ⬇ EXPORT / ⬆ IMPORT buttons inside container.
+   ─────────────────────────────────────────────────────────────── */
+export function mountModuleBackup(container, { moduleId, moduleCode, scope, onImported }) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="s-ttl"><span>MODULE BACKUP</span></div>
+    <div class="row gap-12">
+      <button class="btn flex-1" id="mb-export-${esc(moduleId)}">⬇ EXPORT JSON</button>
+      <button class="btn flex-1" id="mb-import-${esc(moduleId)}">⬆ IMPORT JSON</button>
+    </div>
+    <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:4px;">
+      Export saves this module's data only. Import restores it on any device.
+    </div>
+  `;
+
+  document.getElementById(`mb-export-${moduleId}`)?.addEventListener('click', () => {
+    const data = {};
+    const keys = scope.keys ? scope.keys() : [];
+    keys.forEach(k => { data[`${moduleId}.${k}`] = scope.get(k); });
+    const backup = {
+      _meta: {
+        app: 'Grammar.AI',
+        module: moduleId.toUpperCase(),
+        exportedAt: new Date().toISOString(),
+        exportedOn: new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' })
+      },
+      data
+    };
+    downloadFile(
+      gFileName(moduleId.toUpperCase(), moduleCode, 'json'),
+      JSON.stringify(backup, null, 2),
+      'application/json'
+    );
+    toast(`${moduleId.toUpperCase()} exported`, 'success');
+  });
+
+  document.getElementById(`mb-import-${moduleId}`)?.addEventListener('click', async () => {
+    const f = await pickFile('application/json,.json');
+    if (!f) return;
+    try {
+      const txt = await readFileAsText(f);
+      const obj = JSON.parse(txt);
+      const data = obj.data || {};
+      const meta = obj._meta || {};
+
+      if (!confirm(`Import ${moduleId.toUpperCase()} data?\nBackup from: ${meta.exportedOn || 'unknown'}\nThis will overwrite current ${moduleId.toUpperCase()} data.`)) return;
+
+      // Only restore keys belonging to this module
+      for (const [k, v] of Object.entries(data)) {
+        if (k.startsWith(`${moduleId}.`)) {
+          const { Storage } = await import('./storage.js');
+          Storage.set(k, v);
+        }
+      }
+
+      toast(`${moduleId.toUpperCase()} imported — reloading`, 'success');
+      if (onImported) onImported();
+      else setTimeout(() => location.reload(), 600);
+    } catch (e) {
+      toast('Import failed: ' + e.message, 'error');
+    }
+  });
+}
+
 /* ─── OUTPUT COLOR PICKER ─────────────────────────────────────────
    mountOutputColorPicker(btn, outputEl)
    Applies colors to selected text in OUTPUT divs only.

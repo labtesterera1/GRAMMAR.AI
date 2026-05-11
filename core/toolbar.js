@@ -1,30 +1,14 @@
 /* ────────────────────────────────────────────────────────────────
-   COMPOSER TOOLBAR · v2 · shared component
-   Format row:  B / H / ◐ / 👁 / aA / 😊 / 📖 / ⧉
+   COMPOSER TOOLBAR · v3 · shared component
+   Format row:  B / H / ◐ / 👁 / aA / 😊 / ⧉
    Action row:  📎 🎤 ✨ 🌐 🗑 ▸
 
-   KEY DESIGN: Every tool works WITHOUT needing a text selection.
-   - Dictionary / Case / Bold / Highlight → auto-detect word at cursor
-   - If textarea is empty, show friendly hint instead of error
+   INPUT always stays clean — no color tags injected here.
+   Color picker is output-only via mountOutputColorPicker() in ui.js.
    ──────────────────────────────────────────────────────────────── */
 
 import { $, $$, esc, toast, openSheet, closeSheet } from './ui.js';
 
-/* ─── Color definitions ─── */
-const COLORS = {
-  highlight: [
-    { key: 'hl-yellow', label: 'Yellow',  tag: '[[hl-yellow]]',  css: '#f5e642', bg: '#f5e642', fg: '#000' },
-    { key: 'hl-blue',   label: 'Blue',    tag: '[[hl-blue]]',    css: '#42a8f5', bg: '#42a8f5', fg: '#fff' },
-    { key: 'hl-green',  label: 'Green',   tag: '[[hl-green]]',   css: '#42f57e', bg: '#42f57e', fg: '#000' },
-    { key: 'hl-pink',   label: 'Pink',    tag: '[[hl-pink]]',    css: '#f542b0', bg: '#f542b0', fg: '#fff' }
-  ],
-  text: [
-    { key: 'tx-lime',   label: 'Lime',    tag: '[[tx-lime]]',    css: '#d4ff3a', fg: '#d4ff3a' },
-    { key: 'tx-red',    label: 'Red',     tag: '[[tx-red]]',     css: '#c97a5a', fg: '#c97a5a' },
-    { key: 'tx-blue',   label: 'Blue',    tag: '[[tx-blue]]',    css: '#42a8f5', fg: '#42a8f5' },
-    { key: 'tx-muted',  label: 'Muted',   tag: '[[tx-muted]]',   css: '#8a8479', fg: '#8a8479' }
-  ]
-};
 const EMOJIS = {
   'Faces':   ['😊','😂','🤔','😍','😎','🥺','😅','🙏','😇','🤩','😆','😴','🤗','😬','🫡'],
   'Gestures':['👋','👍','👎','✌️','🤞','👏','🙌','🫶','💪','🤝','☝️','👉','💯','✅','❌'],
@@ -35,23 +19,21 @@ const EMOJIS = {
 export function renderToolbarHTML() {
   return `
     <div class="toolbar" role="toolbar" aria-label="Format">
-      <button class="toolbar-btn" data-tool="bold"       title="Bold — wraps word or selection"><b>B</b></button>
+      <button class="toolbar-btn" data-tool="bold"       title="Bold"><b>B</b></button>
       <button class="toolbar-btn" data-tool="heading"    title="Heading">H</button>
-      <button class="toolbar-btn" data-tool="highlight"  title="Highlight — wraps word or selection">◐</button>
+      <button class="toolbar-btn" data-tool="highlight"  title="Highlight word">◐</button>
       <button class="toolbar-btn" data-tool="preview"    title="Preview formatted">👁</button>
-      <button class="toolbar-btn" data-tool="case"       title="Toggle case — cycles word or selection">aA</button>
+      <button class="toolbar-btn" data-tool="case"       title="Toggle case">aA</button>
       <button class="toolbar-btn" data-tool="emoji"      title="Emoji picker">😊</button>
-      <button class="toolbar-btn" data-tool="color"      title="Color — highlight & text color">🎨</button>
-      <button class="toolbar-btn" data-tool="dictionary" title="Dictionary — looks up word at cursor">📖</button>
-      <button class="toolbar-btn" data-tool="duplicate"  title="Duplicate current line">⧉</button>
+      <button class="toolbar-btn" data-tool="duplicate"  title="Duplicate line">⧉</button>
     </div>
     <div class="toolbar toolbar-2" role="toolbar" aria-label="Actions">
-      <button class="toolbar-btn" data-tool="attach"     title="Attach file">📎</button>
-      <button class="toolbar-btn" data-tool="voice"      title="Voice input">🎤</button>
-      <button class="toolbar-btn" data-tool="improve"    title="AI: improve grammar">✨</button>
-      <button class="toolbar-btn" data-tool="translate"  title="Translate EN ↔ HI">🌐</button>
+      <button class="toolbar-btn" data-tool="attach"      title="Attach file">📎</button>
+      <button class="toolbar-btn" data-tool="voice"       title="Voice input">🎤</button>
+      <button class="toolbar-btn" data-tool="improve"     title="AI: improve grammar">✨</button>
+      <button class="toolbar-btn" data-tool="translate"   title="Translate EN ↔ HI">🌐</button>
       <button class="toolbar-btn danger" data-tool="clear-input" title="Clear input">🗑</button>
-      <button class="toolbar-btn send-btn" data-tool="send" title="Send (Enter)">▸</button>
+      <button class="toolbar-btn send-btn" data-tool="send" title="Send">▸</button>
     </div>
   `;
 }
@@ -198,59 +180,6 @@ export function mountToolbar(root, cfg) {
     setTimeout(() => document.getElementById('cmp-prev-close')?.addEventListener('click', closeSheet), 50);
   }
 
-  /* ─── Dictionary — works without selection ─── */
-  function openDict() {
-    const { word } = wordAtCursor(ta);
-    if (!word) { toast('Place cursor on a word first'); return; }
-    runDict(word.replace(/[^a-zA-Z'-]/g, ''));
-  }
-
-  async function runDict(word) {
-    if (!word) { toast('No word found at cursor'); return; }
-    openSheet(`
-      <div class="sheet-handle"></div>
-      <div class="sheet-inner">
-        <div class="kicker"><span>DICTIONARY</span><span class="muted" id="cmp-dict-status">FETCHING…</span></div>
-        <div class="sheet-title" id="cmp-dict-word">${esc(word)}</div>
-        <div class="frame subtle output-box" id="cmp-dict-body" style="padding:14px;min-height:80px;">
-          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-          <div class="mono dim" style="font-size:11px;">Looking up "${esc(word)}"…</div>
-        </div>
-        <button class="btn mt-12" style="width:100%;" id="cmp-dict-close">CLOSE</button>
-      </div>
-    `);
-    setTimeout(() => document.getElementById('cmp-dict-close')?.addEventListener('click', closeSheet), 50);
-    try {
-      const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(word));
-      if (!r.ok) throw new Error('Not found');
-      const arr = await r.json();
-      const entry = arr[0];
-      const html = `
-        ${entry.phonetic ? `<div class="mono" style="font-size:12px;color:var(--muted);margin-bottom:8px;">${esc(entry.phonetic)}</div>` : ''}
-        ${(entry.meanings || []).map(m => `
-          <div class="mono lime" style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;margin-top:12px;margin-bottom:4px;">${esc(m.partOfSpeech)}</div>
-          ${(m.definitions || []).slice(0, 3).map((d, i) => `
-            <div style="display:flex;gap:6px;font-size:12px;line-height:1.55;margin-bottom:4px;">
-              <span class="mono muted">${i+1}.</span>
-              <span>${esc(d.definition)}</span>
-            </div>
-            ${d.example ? `<div class="serif" style="font-size:13px;font-style:italic;color:var(--muted);margin:2px 0 8px 16px;">"${esc(d.example)}"</div>` : ''}
-          `).join('')}
-        `).join('')}
-      `;
-      document.getElementById('cmp-dict-status')?.setAttribute('class', 'lime');
-      const s = document.getElementById('cmp-dict-status');
-      if (s) s.textContent = '● FOUND';
-      const b = document.getElementById('cmp-dict-body');
-      if (b) b.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>${html}`;
-    } catch {
-      const s = document.getElementById('cmp-dict-status');
-      const b = document.getElementById('cmp-dict-body');
-      if (s) { s.textContent = '● NOT FOUND'; s.className = 'rust'; }
-      if (b) b.innerHTML = `<span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><div class="mono dim" style="font-size:11px;">No definition found for "<strong>${esc(word)}</strong>".</div>`;
-    }
-  }
-
   /* ─── Emoji picker ─── */
   function openEmoji() {
     // Save cursor position before sheet opens (mobile loses focus)
@@ -314,98 +243,6 @@ export function mountToolbar(root, cfg) {
     }, 60);
   }
 
-  /* ─── Color picker ─── */
-  function openColorPicker() {
-    // CRITICAL: Save selection NOW before sheet opens and textarea loses focus
-    const savedSel = {
-      start: ta.selectionStart,
-      end:   ta.selectionEnd,
-      val:   ta.value
-    };
-
-    openSheet(`
-      <div class="sheet-handle"></div>
-      <div class="sheet-inner">
-        <div class="kicker"><span>COLOR</span><span class="lime">HIGHLIGHT + TEXT</span></div>
-        <div class="sheet-title">Color picker</div>
-
-        <div class="s-ttl" style="margin-top:0;"><span>HIGHLIGHT</span></div>
-        <div class="color-swatches" id="cp-hl">
-          ${COLORS.highlight.map(c => `
-            <button class="color-swatch" data-ckey="${esc(c.key)}" data-ctype="highlight"
-              style="background:${esc(c.bg)};color:${esc(c.fg)};" title="${esc(c.label)}">
-              ${esc(c.label)}
-            </button>
-          `).join('')}
-        </div>
-
-        <div class="s-ttl"><span>TEXT COLOR</span></div>
-        <div class="color-swatches" id="cp-tx">
-          ${COLORS.text.map(c => `
-            <button class="color-swatch color-swatch-text" data-ckey="${esc(c.key)}" data-ctype="text"
-              style="border-color:${esc(c.fg)};color:${esc(c.fg)};" title="${esc(c.label)}">
-              ${esc(c.label)}
-            </button>
-          `).join('')}
-        </div>
-
-        <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:10px;">
-          Colors render in 👁 Preview, chat bubbles, and note cards.
-          In the textarea you will see the tag syntax — tap 👁 to preview.
-        </div>
-        <button class="btn mt-12" style="width:100%;" id="cp-close">CLOSE</button>
-      </div>
-    `);
-
-    setTimeout(() => {
-      document.querySelectorAll('[data-ckey][data-ctype="highlight"]').forEach(b => {
-        b.addEventListener('click', () => {
-          const col = COLORS.highlight.find(c => c.key === b.dataset.ckey);
-          if (col) { wrapColorSaved(col.tag, savedSel); closeSheet(); }
-        });
-      });
-      document.querySelectorAll('[data-ckey][data-ctype="text"]').forEach(b => {
-        b.addEventListener('click', () => {
-          const col = COLORS.text.find(c => c.key === b.dataset.ckey);
-          if (col) { wrapColorSaved(col.tag, savedSel); closeSheet(); }
-        });
-      });
-      document.getElementById('cp-close')?.addEventListener('click', closeSheet);
-    }, 60);
-  }
-
-  /**
-   * Insert color tag using saved selection (works after textarea lost focus).
-   * savedSel = { start, end, val } captured before sheet opened.
-   */
-  function wrapColorSaved(tag, saved) {
-    const { start, end, val } = saved;
-    let target, s, e;
-
-    if (start !== end) {
-      // User had a real selection
-      target = val.slice(start, end);
-      s = start;
-      e = end;
-    } else {
-      // No selection — auto-detect word at saved cursor position
-      const WORD = /[\wÀ-ÖØ-öø-ÿ'-]/;
-      let left  = start;
-      let right = start;
-      while (left  > 0          && WORD.test(val[left  - 1])) left--;
-      while (right < val.length && WORD.test(val[right]))     right++;
-      target = val.slice(left, right) || 'text';
-      s = left;
-      e = right;
-    }
-
-    const insert = `${tag}${target}[[/]]`;
-    ta.value = val.slice(0, s) + insert + val.slice(e);
-    ta.focus();
-    ta.selectionStart = s + tag.length;
-    ta.selectionEnd   = s + tag.length + target.length;
-    autoresize();
-  }
   let voiceRec = null;
   function toggleVoice() {
     const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -466,8 +303,6 @@ export function mountToolbar(root, cfg) {
   on('preview',     openPreview);
   on('case',        toggleCase);
   on('emoji',       openEmoji);
-  on('color',       openColorPicker);
-  on('dictionary',  openDict);
   on('duplicate',   duplicateLine);
   on('attach',      () => { if (cfg.onAttach) ensureFileInput().click(); else toast('Attach not enabled here'); });
   on('voice',       toggleVoice);

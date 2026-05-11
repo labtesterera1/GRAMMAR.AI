@@ -507,12 +507,35 @@ function paintWorkerBadge(host) {
 async function refreshStorage(host) {
   const persisted = await isPersisted();
   const est = await storageEstimate();
+  const isEdge   = navigator.userAgent.includes('Edg/');
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
   const modeEl = $('#storage-mode', host);
   const usedEl = $('#storage-used', host);
+
   if (modeEl) {
     if (persisted) {
-      modeEl.innerHTML = '<span class="lime">✓ Persistent</span>';
+      modeEl.innerHTML = '<span class="lime">✓ Persistent — data protected</span>';
+    } else if (isEdge && !isMobile) {
+      // Edge desktop — specific guidance
+      modeEl.innerHTML = `
+        <span class="rust">⚠ Edge Browser — Not Persistent</span>
+        <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.7;margin-top:8px;">
+          To protect data in Edge, do ONE of these:<br>
+          → Press <strong>Ctrl+D</strong> to add this site to Favorites<br>
+          → OR Edge menu <strong>(...)</strong> → Apps → Install this site as app<br>
+          Then tap REQUEST below.
+        </div>
+        <button class="btn mt-8" id="ask-persist" style="width:100%;">REQUEST PERSISTENT STORAGE</button>
+      `;
+      setTimeout(() => {
+        document.getElementById('ask-persist')?.addEventListener('click', async () => {
+          const ok = await requestPersist();
+          toast(ok ? '✓ Granted — data is now protected' : 'Add to Favorites first, then try again', ok ? 'success' : 'error');
+          refreshStorage(host);
+        });
+      }, 50);
     } else if (navigator.storage?.persist) {
+      // Chrome / other — standard request
       modeEl.innerHTML = '<span class="muted">Best-effort · <button class="btn btn-icon" id="ask-persist" style="margin-left:8px;font-size:9px;">REQUEST</button></span>';
       setTimeout(() => {
         document.getElementById('ask-persist')?.addEventListener('click', async () => {
@@ -525,6 +548,7 @@ async function refreshStorage(host) {
       modeEl.innerHTML = '<span class="muted">Not supported on this browser</span>';
     }
   }
+
   if (usedEl && est) {
     usedEl.innerHTML = `<span class="lime">${fmtBytes(est.usage)}</span> <span class="muted">/ ${fmtBytes(est.quota)}</span>`;
   } else if (usedEl) {

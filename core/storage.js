@@ -124,28 +124,40 @@ export const Storage = {
     }
 
     if (mode === 'merge') {
-      // Merge notes — append imported notes to existing, avoid duplicates by id
+      // Notes — keep newest version when duplicate id found
       const existing = Storage.scope('notes').get('notes', []);
       const imported = backup.modules.notes?.['notes.notes'] || [];
-      const existingIds = new Set(existing.map(n => n.id));
-      const merged = [...existing, ...imported.filter(n => !existingIds.has(n.id))];
-      Storage.scope('notes').set('notes', merged);
+      const noteMap = new Map();
+      // Add existing first
+      existing.forEach(n => noteMap.set(n.id, n));
+      // Imported wins if it has newer updatedAt
+      imported.forEach(n => {
+        const ex = noteMap.get(n.id);
+        if (!ex || (n.updatedAt || 0) > (ex.updatedAt || 0)) {
+          noteMap.set(n.id, n);
+        }
+      });
+      Storage.scope('notes').set('notes', Array.from(noteMap.values()));
 
-      // Merge chat history
+      // Chat history — keep all unique by ts
       const existingChat = Storage.scope('chat').get('history', []);
       const importedChat = backup.modules.chat?.['chat.history'] || [];
-      const existingTs = new Set(existingChat.map(m => m.ts));
-      const mergedChat = [...existingChat, ...importedChat.filter(m => !existingTs.has(m.ts))];
+      const chatMap = new Map();
+      existingChat.forEach(m => chatMap.set(m.ts, m));
+      importedChat.forEach(m => chatMap.set(m.ts, m)); // imported wins on same ts
+      const mergedChat = Array.from(chatMap.values()).sort((a,b) => a.ts - b.ts);
       Storage.scope('chat').set('history', mergedChat);
 
-      // Merge translator history
+      // Translator history — keep all unique by ts
       const existingTr = Storage.scope('translator').get('history', []);
       const importedTr = backup.modules.translator?.['translator.history'] || [];
-      const existingTrTs = new Set(existingTr.map(m => m.ts));
-      const mergedTr = [...existingTr, ...importedTr.filter(m => !existingTrTs.has(m.ts))];
+      const trMap = new Map();
+      existingTr.forEach(m => trMap.set(m.ts, m));
+      importedTr.forEach(m => trMap.set(m.ts, m));
+      const mergedTr = Array.from(trMap.values()).sort((a,b) => b.ts - a.ts);
       Storage.scope('translator').set('history', mergedTr);
 
-      // Apply other modules fully (paragraph, email, exercise, rewrite, timezone, settings)
+      // Other modules — apply imported (overwrite)
       for (const mod of ['paragraph','email','exercise','rewrite','timezone']) {
         applyModule(backup.modules[mod]);
       }
