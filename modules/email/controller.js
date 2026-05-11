@@ -2,7 +2,7 @@
    EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -87,6 +87,9 @@ export default async function init({ root, module }) {
     elImproved.innerHTML  = renderMd(state.last.improved  || '');
     elPolished.innerHTML  = renderMd(state.last.polished  || '');
     elResults.classList.remove('hide');
+    $('#color-corrected', root)?.classList.remove('hide');
+    $('#color-improved',  root)?.classList.remove('hide');
+    $('#color-polished',  root)?.classList.remove('hide');
     showSendOut();
   }
 
@@ -230,6 +233,10 @@ Return ONLY this JSON:
       elImproved.innerHTML  = renderMd(state.last.improved);
       elPolished.innerHTML  = renderMd(state.last.polished);
       elResults.classList.remove('hide');
+      // Reveal color pickers now that output exists
+      $('#color-corrected', root)?.classList.remove('hide');
+      $('#color-improved',  root)?.classList.remove('hide');
+      $('#color-polished',  root)?.classList.remove('hide');
       showSendOut();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
@@ -280,6 +287,10 @@ Return ONLY this JSON:
     if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
+
+  mountModuleBackup($('#email-module-backup', root), {
+    moduleId: 'email', moduleCode: 'EM', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); },
