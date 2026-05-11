@@ -2,7 +2,7 @@
    TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -81,6 +81,7 @@ export default async function init({ root, module }) {
   if (state.output) {
     elOutput.innerHTML = renderMd(state.output);
     elOutput.classList.remove('placeholder');
+    elColor?.classList.remove('hide');
     showSendOut();
   }
   refreshStatus();
@@ -203,6 +204,7 @@ export default async function init({ root, module }) {
       elOutput.innerHTML = renderMd(r.text);
       state.output = r.text;
       SCOPE.set('output', state.output);
+      elColor?.classList.remove('hide');
       showSendOut();
 
       // Push to history
@@ -310,6 +312,10 @@ export default async function init({ root, module }) {
   function refreshHist() {
     if (elHL) elHL.textContent = `HISTORY ${state.history.length}/${opts.historyMax || 20}`;
   }
+
+  mountModuleBackup($('#tr-module-backup', root), {
+    moduleId: 'translator', moduleCode: 'TR', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); },
