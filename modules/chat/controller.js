@@ -2,7 +2,7 @@
    CHAT MODULE · controller · v1.1.1
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName, renderMd, mountOutputColorPicker } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, readFileAsText, mountSendOut, gFileName, renderMd, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -392,6 +392,11 @@ export default async function init({ root, module }) {
       return `[${new Date(m.ts).toISOString()}] ${who}:\n${m.content}\n`;
     }).join('\n---\n\n');
   }
+
+  // Module backup
+  mountModuleBackup($('#chat-module-backup', root), {
+    moduleId: 'chat', moduleCode: 'CH', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); scrollBottom(); },
