@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.3.7",
-  "build": "2026.05.08",
+  "version": "1.3.8",
+  "build": "2026.05.12",
   "channel": "stable",
   "history": [
     {
-      "version": "1.3.7",
-      "date": "2026-05-08",
-      "notes": "Structured Export/Import for all 8 modules. Export All / Notes Only / Settings Only. Import with Full Restore / Merge / Notes Only / Settings Only. 7-day backup reminder. Foundation for GitHub sync."
+      "version": "1.3.8",
+      "date": "2026-05-12",
+      "notes": "Point1: 🎨 hidden until output exists. Point2: Edge persistent storage guidance. Point3: Merge dedup keeps newest by updatedAt. Point4: Per-module JSON import/export in every module. Point5: Timezone CDT/CST↔IST dedicated sub-tab with grouped cities, both directions, Option B result."
     },
     {
-      "version": "1.3.6",
-      "date": "2026-05-04",
-      "notes": "Color picker output-only (input stays clean). Dictionary removed. Per-output 🎨 button on all modules."
+      "version": "1.3.7",
+      "date": "2026-05-08",
+      "notes": "Structured Export/Import all 8 modules. 7-day backup reminder."
     }
   ]
 }
