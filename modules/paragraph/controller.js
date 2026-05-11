@@ -2,7 +2,7 @@
    PARAGRAPH MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -69,6 +69,7 @@ export default async function init({ root, module }) {
   if (state.lastOutput) {
     elOutput.innerHTML = renderMd(state.lastOutput);
     elOutput.classList.remove('placeholder');
+    elColor?.classList.remove('hide');
     showSendOut();
   }
   refreshStatus();
@@ -175,6 +176,7 @@ export default async function init({ root, module }) {
       elOutput.innerHTML = renderMd(r.text);
       state.lastOutput = r.text;
       SCOPE.set('lastOutput', state.lastOutput);
+      elColor?.classList.remove('hide');
       showSendOut();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
@@ -226,6 +228,10 @@ export default async function init({ root, module }) {
     if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
+
+  mountModuleBackup($('#para-module-backup', root), {
+    moduleId: 'paragraph', moduleCode: 'PA', scope: SCOPE
+  });
 
   return {
     onShow() { refreshStatus(); },
