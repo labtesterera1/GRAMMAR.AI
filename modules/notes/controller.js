@@ -6,7 +6,7 @@
    copy, send to chat, download TXT/JSON, import JSON
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName, renderMd } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName, renderMd, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -651,13 +651,16 @@ export default async function init({ root, module }) {
     closeSheet();
   }
 
+  // Notes module backup (visible in unlocked main view)
+  mountModuleBackup($('#notes-module-backup', root), {
+    moduleId: 'notes', moduleCode: 'NO', scope: SCOPE
+  });
+
   return {
     onShow() {
-      // Re-check lock state — if user navigated away and back, re-lock
       if (state.unlocked) { renderNotes(); }
     },
     onHide() {
-      // Auto-lock when leaving the module
       if (state.unlocked) { lock(); }
     },
     destroy() {
