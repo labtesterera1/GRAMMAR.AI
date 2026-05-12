@@ -1,15 +1,14 @@
-<!-- Notes module — password gate shown/hidden by controller -->
+<div class="page-inner">
 
-<!-- ─── PASSWORD GATE ─── -->
-<div id="notes-gate" class="page-inner">
+  <!-- Header -->
   <div class="kicker">
-    <span>MOD 06 / NOTES</span>
-    <span class="rust" id="gate-status">● LOCKED</span>
+    <span data-bind="moduleNum">MOD 08 / REWRITE</span>
+    <span class="lime" data-bind="status">● READY</span>
   </div>
-  <div class="headline">Notes</div>
+  <div class="headline">Rewrite</div>
   <div class="subline">
-    <span>WRITE · VAULT · EXPORT</span>
-    <span id="gate-sub">ENTER PASSWORD</span>
+    <span>REPHRASE · REFINE · REWRITE</span>
+    <span data-bind="modeLabel">PARAGRAPH MODE</span>
   </div>
   <div class="ticks">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -19,97 +18,44 @@
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
-  <div class="frame subtle notes-gate-box mt-12">
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-    <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;" id="gate-label">ENTER 6-DIGIT PASSWORD</div>
+  <!-- Mode toggle -->
+  <div class="rw-mode-row">
+    <button class="rw-mode-btn on" data-mode="paragraph">¶ PARAGRAPH MODE</button>
+    <button class="rw-mode-btn"    data-mode="sentence">― SENTENCE MODE</button>
+  </div>
+  <div class="rw-mode-hint" id="rw-mode-hint">
+    Paste a full paragraph — get 5 rewrites of the whole text.
+  </div>
 
-    <!-- PIN dots display -->
-    <div class="pin-dots" id="pin-dots">
-      <span class="pin-dot" data-i="0"></span>
-      <span class="pin-dot" data-i="1"></span>
-      <span class="pin-dot" data-i="2"></span>
-      <span class="pin-dot" data-i="3"></span>
-      <span class="pin-dot" data-i="4"></span>
-      <span class="pin-dot" data-i="5"></span>
+  <!-- Input -->
+  <div class="s-ttl"><span>YOUR TEXT</span><span class="num" id="rw-wc">0 WORDS</span></div>
+  <textarea
+    class="composer-input"
+    id="rw-input"
+    placeholder="Paste or type your text here…"
+    rows="5"
+    aria-label="Text to rewrite"></textarea>
+  <div id="toolbar-mount"></div>
+
+  <!-- Actions row -->
+  <div class="row gap-12 mt-12" style="flex-wrap:wrap;">
+    <button class="btn btn-primary flex-1" id="rw-go">✍️ REWRITE × 5</button>
+    <button class="btn" id="rw-read">📖 READ MODE</button>
+    <button class="btn btn-rust" id="rw-clear">✕ CLEAR</button>
+  </div>
+
+  <!-- Rewrite cards output -->
+  <div id="rw-output" class="hide">
+    <div class="s-ttl mt-16">
+      <span>5 REWRITES</span>
+      <span class="num" id="rw-route">—</span>
     </div>
+    <!-- Download All button -->
+    <button class="btn" id="rw-dl-all" style="width:100%;margin-bottom:12px;">⬇ DOWNLOAD ALL 5 REWRITES</button>
+    <div id="rw-cards" class="rw-cards"></div>
 
-    <!-- PIN error message -->
-    <div class="mono rust" id="pin-error" style="font-size:11px;letter-spacing:0.06em;margin-top:10px;min-height:18px;text-align:center;"></div>
-
-    <!-- Numpad -->
-    <div class="numpad" id="numpad">
-      <button class="num-btn" data-n="1">1</button>
-      <button class="num-btn" data-n="2">2</button>
-      <button class="num-btn" data-n="3">3</button>
-      <button class="num-btn" data-n="4">4</button>
-      <button class="num-btn" data-n="5">5</button>
-      <button class="num-btn" data-n="6">6</button>
-      <button class="num-btn" data-n="7">7</button>
-      <button class="num-btn" data-n="8">8</button>
-      <button class="num-btn" data-n="9">9</button>
-      <button class="num-btn num-del" id="pin-clear">CLR</button>
-      <button class="num-btn" data-n="0">0</button>
-      <button class="num-btn num-ok" id="pin-ok">OK</button>
-    </div>
-
-    <!-- Reset option (only shown if password is set) -->
-    <div id="pin-reset-row" style="text-align:center;margin-top:14px;" class="hide">
-      <button class="btn-ghost" id="pin-reset" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);">↺ RESET PASSWORD</button>
-    </div>
+    <!-- SEND OUT -->
+    <div id="rw-sendout" class="hide"></div>
+    <div id="rw-module-backup" class="mt-4"></div>
   </div>
 </div>
-
-<!-- ─── NOTES MAIN VIEW (shown after unlock) ─── -->
-<div id="notes-main" class="hide">
-  <div class="page-inner">
-    <div class="kicker">
-      <span>MOD 06 / NOTES</span>
-      <span class="lime">● UNLOCKED</span>
-    </div>
-    <div class="headline">Notes</div>
-    <div class="subline">
-      <span id="notes-stats-line">0 NOTES</span>
-      <span>WRITE · VAULT · EXPORT</span>
-    </div>
-    <div class="ticks">
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    </div>
-
-    <!-- Type filter chips + actions -->
-    <div class="lang-chips">
-      <button class="chip on" data-filter="all">ALL</button>
-      <button class="chip" data-filter="quick">⚡</button>
-      <button class="chip" data-filter="daily">📓</button>
-      <button class="chip" data-filter="study">📚</button>
-      <span class="flex-1"></span>
-      <button class="chip" id="notes-download-btn" title="Download">⬇</button>
-      <button class="chip" id="notes-lock-btn" title="Lock notes">🔒</button>
-    </div>
-
-    <!-- Search -->
-    <div class="row gap-12 mt-12">
-      <input class="input flex-1" id="notes-search" placeholder="Search notes…" autocomplete="off" />
-      <button class="btn btn-primary" id="notes-new-btn">+ NEW</button>
-    </div>
-
-    <!-- Notes list -->
-    <div id="notes-list" class="col mt-12"></div>
-
-    <!-- Empty state -->
-    <div id="notes-empty" class="hide">
-      <div class="frame subtle" style="padding:32px 20px;text-align:center;margin-top:16px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div style="font-size:40px;margin-bottom:12px;">📝</div>
-        <div class="serif" style="font-size:22px;margin-bottom:8px;">No notes yet</div>
-        <div class="mono" style="font-size:11px;color:var(--muted);">Tap + NEW to create your first note</div>
-      </div>
-    </div>
-    <div id="notes-module-backup" class="mt-4"></div>
-  </div>
-</div>
-
-<!-- ─── NOTE EDITOR SHEET (injected by controller) ─── -->
