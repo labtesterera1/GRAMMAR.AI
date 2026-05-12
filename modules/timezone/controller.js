@@ -1,104 +1,85 @@
 /* ────────────────────────────────────────────────────────────────
-   TIMEZONE MODULE · controller · v1.1.0
-   Sub-tabs: CONVERT | CDT/CST ↔ IST | WORLD CLOCK
+   TIMEZONE MODULE · v1.2.1
+   Sub-tabs: CONVERT | WORLD ↔ IST | WORLD CLOCK
+   Uses sv-SE locale trick for reliable offset calculation
+   across all browsers and server environments.
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast } from '../../core/ui.js';
+import { $, $$, esc } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 
 const SCOPE = Storage.scope('timezone');
 
-/* ─── CDT/CST offset detection ─────────────────────────────────
-   Given a date string + IANA zone, returns the UTC offset in hours
-   and whether DST is active (CDT) or not (CST).
+/* ─── Reliable UTC offset in minutes for any zone at a given Date
+   sv-SE formats "YYYY-MM-DD HH:MM:SS" — no ambiguity, no locale quirks.
+   offset > 0 means zone is ahead of UTC (e.g. IST = +330).
    ─────────────────────────────────────────────────────────────── */
-function detectCdtCst(dateStr, timeStr, zone) {
-  const dt = new Date(`${dateStr}T${timeStr || '12:00'}:00`);
-  if (isNaN(dt)) return null;
-
-  // Get UTC offset for this zone on this date
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: zone,
-    timeZoneName: 'short'
-  });
-  const parts = fmt.formatToParts(dt);
-  const tzName = parts.find(p => p.type === 'timeZoneName')?.value || '';
-
-  // Detect CDT vs CST from the abbreviated name
-  const isCDT = tzName === 'CDT';
-  const isCST = tzName === 'CST';
-
-  // Get the numeric offset using another trick
-  const utcStr = dt.toLocaleString('en-US', { timeZone: 'UTC', hour12: false, hour:'2-digit', minute:'2-digit' });
-  const locStr = dt.toLocaleString('en-US', { timeZone: zone, hour12: false, hour:'2-digit', minute:'2-digit' });
-
-  return { isCDT, isCST, tzName, offset: isCDT ? -5 : isCST ? -6 : null };
+function getOffsetMin(date, zone) {
+  const sv = d => d.toLocaleString('sv-SE', { timeZone: zone });
+  const toMs = s => new Date(s.replace(' ', 'T') + 'Z').getTime();
+  return Math.round((toMs(sv(date)) - toMs(date.toLocaleString('sv-SE', { timeZone: 'UTC' }))) / 60000);
 }
 
-/* ─── Convert CDT/CST → IST or IST → CDT/CST ─── */
-function convertCdtIst(dateStr, timeStr, zone, direction) {
-  if (!dateStr || !timeStr) return null;
+/* ─── Timezone abbreviation + offset string ─── */
+function getTzMeta(date, zone) {
+  const abbr = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone, timeZoneName: 'short'
+  }).formatToParts(date).find(p => p.type === 'timeZoneName')?.value || zone;
 
-  const timeOptsFull = { hour: '2-digit', minute: '2-digit', hour12: true };
-  const dateOptsFull = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+  const long = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone, timeZoneName: 'long'
+  }).formatToParts(date).find(p => p.type === 'timeZoneName')?.value || '';
 
-  // Detect CDT/CST abbreviation for the given date
-  const refDt = new Date(`${dateStr}T${timeStr}:00Z`); // treat as UTC for detection
-  const info = detectCdtCst(dateStr, timeStr, zone);
-  const tzAbbr  = info?.tzName || 'CT';
-  const isDST   = info?.isCDT;
-  const isYearRoundCST = !info?.isCDT && !info?.isCST;
-  const cdtOffset = isDST ? -5 : -6; // hours from UTC
+  const offMin = getOffsetMin(date, zone);
+  const sign   = offMin >= 0 ? '+' : '-';
+  const ah     = Math.floor(Math.abs(offMin) / 60);
+  const am     = Math.abs(offMin) % 60;
+  const offStr = `UTC${sign}${ah}:${String(am).padStart(2, '0')}`;
 
-  let fromTime, fromDate, fromLabel, toTime, toDate, toLabel, toHeading;
-
-  if (direction === 'cdt2ist') {
-    // User enters time in CDT/CST zone → find IST equivalent
-    // Step 1: interpret input as CDT/CST time → get UTC
-    const [h, m] = timeStr.split(':').map(Number);
-    const [yr, mo, dy] = dateStr.split('-').map(Number);
-    // UTC = local_time - zone_offset
-    const utcMs = Date.UTC(yr, mo-1, dy, h - cdtOffset, m);
-    const fromDt = new Date(utcMs + cdtOffset * 3600000); // CDT/CST local
-    const toDt   = new Date(utcMs + 5.5 * 3600000);       // IST = UTC+5:30
-
-    fromTime  = new Intl.DateTimeFormat('en-IN', { ...timeOptsFull }).format(fromDt);
-    fromDate  = new Intl.DateTimeFormat('en-IN', { ...dateOptsFull }).format(fromDt);
-    fromLabel = `${tzAbbr} (UTC${cdtOffset}:00)`;
-    toTime    = new Intl.DateTimeFormat('en-IN', { ...timeOptsFull }).format(toDt);
-    toDate    = new Intl.DateTimeFormat('en-IN', { ...dateOptsFull }).format(toDt);
-    toLabel   = 'India Standard Time (UTC+5:30)';
-    toHeading = 'TO — INDIA (IST · UTC+5:30)';
-  } else {
-    // User enters IST time → find CDT/CST equivalent
-    const [h, m] = timeStr.split(':').map(Number);
-    const [yr, mo, dy] = dateStr.split('-').map(Number);
-    // UTC = IST - 5:30
-    const utcMs = Date.UTC(yr, mo-1, dy, h - 5, m - 30);
-    const fromDt = new Date(utcMs + 5.5 * 3600000);        // IST local
-    const toDt   = new Date(utcMs + cdtOffset * 3600000);   // CDT/CST local
-
-    fromTime  = new Intl.DateTimeFormat('en-IN', { ...timeOptsFull }).format(fromDt);
-    fromDate  = new Intl.DateTimeFormat('en-IN', { ...dateOptsFull }).format(fromDt);
-    fromLabel = 'India Standard Time (UTC+5:30)';
-    toTime    = new Intl.DateTimeFormat('en-IN', { ...timeOptsFull }).format(toDt);
-    toDate    = new Intl.DateTimeFormat('en-IN', { ...dateOptsFull }).format(toDt);
-    toLabel   = `${tzAbbr} (UTC${cdtOffset}:00)`;
-    toHeading = `TO — CENTRAL TIME (${tzAbbr})`;
-  }
-
-  // Active note
-  let activeNote;
-  if (isYearRoundCST) {
-    activeNote = '● CST year-round — no daylight saving in this country';
-  } else if (isDST) {
-    activeNote = '● CDT active on this date — US Summer (clocks forward)';
-  } else {
-    activeNote = '● CST active on this date — US Winter (clocks back)';
-  }
-
-  return { fromTime, fromDate, fromLabel, toTime, toDate, toLabel, toHeading, activeNote, tzAbbr };
+  return { abbr, long, offStr, offMin };
 }
+
+/* ─── Convert local input (dateStr, timeStr) in zone → UTC Date ───
+   Step 1: Treat input as UTC to get approximate epoch.
+   Step 2: Get zone offset at that approximate UTC.
+   Step 3: Real UTC = approxUTC − offset.
+   One iteration is enough for all practical zones (offset rarely
+   changes between approxUTC and realUTC for a 30‑60 min window).
+   ─────────────────────────────────────────────────────────────── */
+function localToUtc(dateStr, timeStr, zone) {
+  const [yr, mo, dy] = dateStr.split('-').map(Number);
+  const [hr, mi]     = timeStr.split(':').map(Number);
+  const approxUtc = new Date(Date.UTC(yr, mo - 1, dy, hr, mi));
+  const offMin    = getOffsetMin(approxUtc, zone);
+  return new Date(Date.UTC(yr, mo - 1, dy, hr, mi) - offMin * 60000);
+}
+
+/* ─── Format helpers ─── */
+const T_OPTS = { hour: '2-digit', minute: '2-digit', hour12: true };
+const D_OPTS = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+const fmtTime = (d, z) => new Intl.DateTimeFormat('en-IN', { ...T_OPTS, timeZone: z }).format(d);
+const fmtDate = (d, z) => new Intl.DateTimeFormat('en-IN', { ...D_OPTS, timeZone: z }).format(d);
+
+/* ─── Build full result object from a UTC Date ─── */
+function buildResult(utcDate, fromZone, toZone, direction) {
+  const fm = getTzMeta(utcDate, fromZone);
+  const tm = getTzMeta(utcDate, toZone);
+  return {
+    fromTime:    fmtTime(utcDate, fromZone),
+    fromDate:    fmtDate(utcDate, fromZone),
+    fromLabel:   `${fm.abbr} (${fm.offStr})`,
+    toTime:      fmtTime(utcDate, toZone),
+    toDate:      fmtDate(utcDate, toZone),
+    toLabel:     `${tm.abbr} (${tm.offStr})`,
+    tzNote:      `${fm.abbr} · ${fm.long} · ${fm.offStr}`,
+    fromHeading: direction === 'world2ist' ? 'FROM — WORLD' : 'FROM — INDIA (IST)',
+    toHeading:   direction === 'world2ist'
+      ? 'TO — INDIA (IST · UTC+5:30)'
+      : `TO — ${tm.abbr} (${tm.offStr})`
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════ */
 
 export default async function init({ root, module }) {
 
@@ -107,17 +88,20 @@ export default async function init({ root, module }) {
   const opts = manifest.options || {};
 
   const state = {
-    tab:      SCOPE.get('tab', 'convert'),
-    from:     SCOPE.get('from', 'Asia/Kolkata'),
-    to:       SCOPE.get('to', 'UTC'),
-    cdtDir:   SCOPE.get('cdtDir', 'cdt2ist'),
-    cdtCity:  SCOPE.get('cdtCity', 'America/Chicago')
+    tab:   SCOPE.get('tab',   'convert'),
+    from:  SCOPE.get('from',  'Asia/Kolkata'),
+    to:    SCOPE.get('to',    'UTC'),
+    wDir:  SCOPE.get('wDir',  'world2ist'),
+    wMode: SCOPE.get('wMode', 'select'),
+    wCity: SCOPE.get('wCity', 'America/Chicago')
   };
 
   const elModNum   = root.querySelector('[data-bind="moduleNum"]');
   const elLocalNow = $('#tz-localnow', root);
-
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
+
+  let liveIv = null;
+  let clockIv = null;
 
   /* ─── Sub-tab switching ─── */
   function paintTabs() {
@@ -125,6 +109,8 @@ export default async function init({ root, module }) {
       b.classList.toggle('on', b.dataset.tztab === state.tab));
     $$('.tz-sub', root).forEach(s =>
       s.classList.toggle('hide', s.dataset.tzsub !== state.tab));
+    if (state.tab !== 'world') stopLive();
+    else if (state.wMode === 'live') startLive();
   }
   $$('.chip[data-tztab]', root).forEach(b => {
     b.addEventListener('click', () => {
@@ -135,14 +121,14 @@ export default async function init({ root, module }) {
   });
   paintTabs();
 
-  /* ────────────────────────────────────────────────────────────
-     SUB 1: CONVERT
-     ──────────────────────────────────────────────────────────── */
-  const elFrom = $('#tz-from', root);
-  const elTo   = $('#tz-to', root);
-  const elDt   = $('#tz-datetime', root);
-  const elSwap = $('#tz-swap', root);
-  const elNow  = $('#tz-now', root);
+  /* ════════════════════════════════════════════════════════════
+     SUB 1 — CONVERT (general any→any)
+     ════════════════════════════════════════════════════════════ */
+  const elFrom      = $('#tz-from', root);
+  const elTo        = $('#tz-to', root);
+  const elDt        = $('#tz-datetime', root);
+  const elSwap      = $('#tz-swap', root);
+  const elNow       = $('#tz-now', root);
   const elFromTime  = $('#tz-from-time', root);
   const elFromDate  = $('#tz-from-date', root);
   const elFromLabel = $('#tz-from-label', root);
@@ -150,189 +136,219 @@ export default async function init({ root, module }) {
   const elToDate    = $('#tz-to-date', root);
   const elToLabel   = $('#tz-to-label', root);
 
-  const optsHtml = (opts.zones || []).map(z =>
-    `<option value="${esc(z.value)}">${esc(z.label)}</option>`
-  ).join('');
-  elFrom.innerHTML = optsHtml;
-  elTo.innerHTML   = optsHtml;
+  const zoneOpts = (opts.zones || []).map(z =>
+    `<option value="${esc(z.value)}">${esc(z.label)}</option>`).join('');
+  elFrom.innerHTML = zoneOpts;
+  elTo.innerHTML   = zoneOpts;
   elFrom.value = state.from;
   elTo.value   = state.to;
   setNow();
 
-  elFrom.addEventListener('change', () => { state.from = elFrom.value; SCOPE.set('from', state.from); convert(); });
-  elTo.addEventListener('change',   () => { state.to   = elTo.value;   SCOPE.set('to',   state.to);   convert(); });
-  elDt.addEventListener('change', convert);
+  elFrom.addEventListener('change', () => { state.from = elFrom.value; SCOPE.set('from', state.from); doConvert(); });
+  elTo.addEventListener('change',   () => { state.to   = elTo.value;   SCOPE.set('to',   state.to);   doConvert(); });
+  elDt.addEventListener('change', doConvert);
   elSwap.addEventListener('click', () => {
     [state.from, state.to] = [state.to, state.from];
     elFrom.value = state.from; elTo.value = state.to;
     SCOPE.set('from', state.from); SCOPE.set('to', state.to);
-    convert();
+    doConvert();
   });
   elNow.addEventListener('click', setNow);
 
   function setNow() {
-    const now = new Date();
-    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    elDt.value = local;
-    convert();
+    const n = new Date();
+    elDt.value = new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    doConvert();
   }
-
-  function convert() {
-    const dtVal = elDt.value;
-    const fromZone = elFrom.value;
-    const toZone   = elTo.value;
-    elFromLabel.textContent = elFrom.options[elFrom.selectedIndex]?.text || fromZone;
-    elToLabel.textContent   = elTo.options[elTo.selectedIndex]?.text || toZone;
-    if (!dtVal) { elFromTime.textContent = '—:—'; elToTime.textContent = '—:—'; return; }
+  function doConvert() {
+    if (!elDt.value) return;
     try {
-      const dt = new Date(dtVal);
-      const tOpts = { hour:'2-digit', minute:'2-digit', hour12:true };
-      const dOpts = { weekday:'short', day:'numeric', month:'short', year:'numeric' };
-      elFromTime.textContent = new Intl.DateTimeFormat('en-IN', { ...tOpts, timeZone: fromZone }).format(dt);
-      elFromDate.textContent = new Intl.DateTimeFormat('en-IN', { ...dOpts, timeZone: fromZone }).format(dt);
-      elToTime.textContent   = new Intl.DateTimeFormat('en-IN', { ...tOpts, timeZone: toZone }).format(dt);
-      elToDate.textContent   = new Intl.DateTimeFormat('en-IN', { ...dOpts, timeZone: toZone }).format(dt);
+      const dt = new Date(elDt.value);
+      elFromLabel.textContent = elFrom.options[elFrom.selectedIndex]?.text || elFrom.value;
+      elToLabel.textContent   = elTo.options[elTo.selectedIndex]?.text     || elTo.value;
+      elFromTime.textContent  = fmtTime(dt, elFrom.value);
+      elFromDate.textContent  = fmtDate(dt, elFrom.value);
+      elToTime.textContent    = fmtTime(dt, elTo.value);
+      elToDate.textContent    = fmtDate(dt, elTo.value);
     } catch { elFromTime.textContent = 'ERR'; elToTime.textContent = 'ERR'; }
   }
 
-  /* ────────────────────────────────────────────────────────────
-     SUB 2: CDT/CST ↔ IST
-     ──────────────────────────────────────────────────────────── */
-  const elCdtCity      = $('#cdt-city', root);
-  const elCdtCityNote  = $('#cdt-city-note', root);
-  const elCdtDate      = $('#cdt-date', root);
-  const elCdtTime      = $('#cdt-time', root);
-  const elCdtNow       = $('#cdt-now', root);
-  const elCdtFromTime  = $('#cdt-from-time', root);
-  const elCdtFromLabel = $('#cdt-from-label', root);
-  const elCdtFromDate  = $('#cdt-from-date', root);
-  const elCdtActiveNote= $('#cdt-active-note', root);
-  const elCdtToTime    = $('#cdt-to-time', root);
-  const elCdtToLabel   = $('#cdt-to-label', root);
-  const elCdtToDate    = $('#cdt-to-date', root);
-  const elCdtToHeading = $('#cdt-to-heading', root);
+  /* ════════════════════════════════════════════════════════════
+     SUB 2 — WORLD ↔ IST
+     ════════════════════════════════════════════════════════════ */
+  const elWDir       = $$('[data-wdir]', root);
+  const elWMode      = $$('[data-wmode]', root);
+  const elWCity      = $('#w-city', root);
+  const elWCityNote  = $('#w-city-note', root);
+  const elWCdtCards  = $('#w-cdt-cards', root);
+  const elWLiveInd   = $('#w-live-indicator', root);
+  const elWSelInputs = $('#w-select-inputs', root);
+  const elWDate      = $('#w-date', root);
+  const elWTime      = $('#w-time', root);
+  const elWNow       = $('#w-now', root);
+  const elDirHint    = $('#w-dir-hint', root);
+  const elWFromTime  = $('#w-from-time', root);
+  const elWFromLabel = $('#w-from-label', root);
+  const elWFromDate  = $('#w-from-date', root);
+  const elWFromHd    = $('#w-from-heading', root);
+  const elWTzNote    = $('#w-tz-note', root);
+  const elWToTime    = $('#w-to-time', root);
+  const elWToLabel   = $('#w-to-label', root);
+  const elWToDate    = $('#w-to-date', root);
+  const elWToHd      = $('#w-to-heading', root);
+
+  const IST = 'Asia/Kolkata';
 
   /* Build grouped city dropdown */
-  const cities = opts.cdtCstCities || [];
-  elCdtCity.innerHTML = cities.map(grp => `
+  elWCity.innerHTML = (opts.worldCities || []).map(grp => `
     <optgroup label="${esc(grp.group)}">
       ${grp.cities.map(c =>
-        `<option value="${esc(c.zone)}" data-note="${esc(c.note || '')}" data-city="${esc(c.name)}">
+        `<option value="${esc(c.zone)}"
+          data-note="${esc(c.note || '')}"
+          data-central="${c.zone === 'America/Chicago' || c.zone === 'America/Winnipeg' ? '1' : ''}">
           ${esc(c.name)} · ${esc(c.country)}
         </option>`
       ).join('')}
-    </optgroup>
-  `).join('');
-  elCdtCity.value = state.cdtCity;
+    </optgroup>`
+  ).join('');
+  elWCity.value = state.wCity;
+  updateCityInfo();
 
-  /* Direction buttons */
-  $$('[data-cdtdir]', root).forEach(b => {
-    b.classList.toggle('on', b.dataset.cdtdir === state.cdtDir);
-    b.addEventListener('click', () => {
-      state.cdtDir = b.dataset.cdtdir;
-      SCOPE.set('cdtDir', state.cdtDir);
-      $$('[data-cdtdir]', root).forEach(x => x.classList.toggle('on', x.dataset.cdtdir === state.cdtDir));
-      updateCdtFromTo();
-      convertCdt();
-    });
+  /* Direction */
+  function paintDir() {
+    elWDir.forEach(b => b.classList.toggle('on', b.dataset.wdir === state.wDir));
+    if (elDirHint) elDirHint.textContent = state.wDir === 'world2ist'
+      ? "Enter the time in the other city's timezone — result shows India (IST) time."
+      : "Enter India (IST) time — result shows the selected city's local time.";
+  }
+  elWDir.forEach(b => b.addEventListener('click', () => {
+    state.wDir = b.dataset.wdir;
+    SCOPE.set('wDir', state.wDir);
+    paintDir();
+    doWorldConvert();
+  }));
+  paintDir();
+
+  /* Mode */
+  function paintMode() {
+    elWMode.forEach(b => b.classList.toggle('on', b.dataset.wmode === state.wMode));
+    const live = state.wMode === 'live';
+    elWLiveInd?.classList.toggle('hide', !live);
+    elWSelInputs?.classList.toggle('hide', live);
+    if (live) startLive(); else stopLive();
+  }
+  elWMode.forEach(b => b.addEventListener('click', () => {
+    state.wMode = b.dataset.wmode;
+    SCOPE.set('wMode', state.wMode);
+    paintMode();
+    if (state.wMode === 'select') doWorldConvert();
+  }));
+  paintMode();
+
+  /* City */
+  elWCity.addEventListener('change', () => {
+    state.wCity = elWCity.value;
+    SCOPE.set('wCity', state.wCity);
+    updateCityInfo();
+    doWorldConvert();
+  });
+  function updateCityInfo() {
+    const sel = elWCity.options[elWCity.selectedIndex];
+    const note     = sel?.dataset.note     || '';
+    const isCentral= sel?.dataset.central  === '1';
+    if (elWCityNote) elWCityNote.textContent = note ? '⚠ ' + note : '';
+    if (elWCdtCards) elWCdtCards.classList.toggle('hide', !isCentral);
+  }
+
+  /* Date/time defaults */
+  const nd = new Date();
+  elWDate.value = nd.toISOString().slice(0, 10);
+  elWTime.value = nd.toTimeString().slice(0, 5);
+  elWDate.addEventListener('change', doWorldConvert);
+  elWTime.addEventListener('change', doWorldConvert);
+  elWNow?.addEventListener('click', () => {
+    const n = new Date();
+    elWDate.value = n.toISOString().slice(0, 10);
+    elWTime.value = n.toTimeString().slice(0, 5);
+    doWorldConvert();
   });
 
-  /* Update FROM/TO headings when direction changes */
-  function updateCdtFromTo() {
-    if (state.cdtDir === 'cdt2ist') {
-      if (elCdtToHeading) elCdtToHeading.textContent = 'TO — INDIA (IST · UTC+5:30)';
+  /* Conversion */
+  function doWorldConvert(utcOverride) {
+    const zone = elWCity.value;
+    if (!zone) return;
+    let utcDate;
+    if (utcOverride) {
+      utcDate = utcOverride;
     } else {
-      const tzAbbr = detectCdtCst(
-        elCdtDate.value || new Date().toISOString().slice(0,10),
-        elCdtTime.value || '12:00',
-        elCdtCity.value
-      )?.tzName || 'CT';
-      if (elCdtToHeading) elCdtToHeading.textContent = `TO — CENTRAL TIME (${tzAbbr})`;
+      const ds = elWDate.value, ts = elWTime.value;
+      if (!ds || !ts) return;
+      const inputZone = state.wDir === 'world2ist' ? zone : IST;
+      utcDate = localToUtc(ds, ts, inputZone);
     }
+    if (!utcDate || isNaN(utcDate)) return;
+
+    const fromZone = state.wDir === 'world2ist' ? zone : IST;
+    const toZone   = state.wDir === 'world2ist' ? IST  : zone;
+    const r = buildResult(utcDate, fromZone, toZone, state.wDir);
+
+    if (elWFromTime)  elWFromTime.textContent  = r.fromTime;
+    if (elWFromLabel) elWFromLabel.textContent = r.fromLabel;
+    if (elWFromDate)  elWFromDate.textContent  = r.fromDate;
+    if (elWFromHd)    elWFromHd.textContent    = r.fromHeading;
+    if (elWTzNote)    elWTzNote.textContent    = r.tzNote;
+    if (elWToTime)    elWToTime.textContent    = r.toTime;
+    if (elWToLabel)   elWToLabel.textContent   = r.toLabel;
+    if (elWToDate)    elWToDate.textContent    = r.toDate;
+    if (elWToHd)      elWToHd.textContent      = r.toHeading;
   }
 
-  elCdtCity.addEventListener('change', () => {
-    state.cdtCity = elCdtCity.value;
-    SCOPE.set('cdtCity', state.cdtCity);
-    // Show note for year-round CST cities
-    const sel = elCdtCity.options[elCdtCity.selectedIndex];
-    const note = sel?.dataset.note || '';
-    if (elCdtCityNote) elCdtCityNote.textContent = note ? '⚠ ' + note : '';
-    convertCdt();
-  });
-
-  elCdtDate.addEventListener('change', convertCdt);
-  elCdtTime.addEventListener('change', convertCdt);
-
-  elCdtNow.addEventListener('click', () => {
-    const now = new Date();
-    elCdtDate.value = now.toISOString().slice(0, 10);
-    elCdtTime.value = now.toTimeString().slice(0, 5);
-    convertCdt();
-  });
-
-  /* Set now as default */
-  const nowD = new Date();
-  elCdtDate.value = nowD.toISOString().slice(0, 10);
-  elCdtTime.value = nowD.toTimeString().slice(0, 5);
-
-  function convertCdt() {
-    const dateStr = elCdtDate.value;
-    const timeStr = elCdtTime.value;
-    const zone    = elCdtCity.value;
-    if (!dateStr || !timeStr || !zone) return;
-
-    const res = convertCdtIst(dateStr, timeStr, zone, state.cdtDir);
-    if (!res) { toast('Invalid date or time', 'error'); return; }
-
-    if (elCdtFromTime)   elCdtFromTime.textContent   = res.fromTime;
-    if (elCdtFromLabel)  elCdtFromLabel.textContent   = res.fromLabel;
-    if (elCdtFromDate)   elCdtFromDate.textContent    = res.fromDate;
-    if (elCdtActiveNote) {
-      elCdtActiveNote.textContent = res.activeNote;
-      elCdtActiveNote.style.color = res.activeNote.includes('CDT') ? 'var(--lime)' : 'var(--muted)';
-    }
-    if (elCdtToTime)    elCdtToTime.textContent    = res.toTime;
-    if (elCdtToLabel)   elCdtToLabel.textContent   = res.toLabel;
-    if (elCdtToDate)    elCdtToDate.textContent    = res.toDate;
-    if (elCdtToHeading) elCdtToHeading.textContent = res.toHeading;
+  function startLive() {
+    stopLive();
+    doWorldConvert(new Date());
+    liveIv = setInterval(() => doWorldConvert(new Date()), 1000);
+  }
+  function stopLive() {
+    if (liveIv) { clearInterval(liveIv); liveIv = null; }
   }
 
-  convertCdt(); // initial conversion
+  doWorldConvert();
 
-  /* ────────────────────────────────────────────────────────────
-     SUB 3: WORLD CLOCK
-     ──────────────────────────────────────────────────────────── */
+  /* ════════════════════════════════════════════════════════════
+     SUB 3 — WORLD CLOCK (live tick)
+     ════════════════════════════════════════════════════════════ */
   const elClock = $('#world-clock', root);
-
   function paintClock() {
     const now = new Date();
     if (elClock) {
       elClock.innerHTML = (opts.worldClock || []).map(z => {
-        const time = new Intl.DateTimeFormat('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true, timeZone: z.zone }).format(now);
-        const date = new Intl.DateTimeFormat('en-IN', { weekday:'short', day:'numeric', month:'short', timeZone: z.zone }).format(now);
+        const time = fmtTime(now, z.zone);
+        const date = new Intl.DateTimeFormat('en-IN', {
+          weekday:'short', day:'numeric', month:'short', timeZone: z.zone
+        }).format(now);
         return `
           <div class="frame subtle world-cell">
-            <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+            <span class="c tl"></span><span class="c tr"></span>
+            <span class="c bl"></span><span class="c br"></span>
             <div class="world-flag">${esc(z.flag)}</div>
             <div class="world-name">${esc(z.name)}</div>
             <div class="serif world-time">${esc(time)}</div>
             <div class="mono world-date">${esc(date)}</div>
-          </div>
-        `;
+          </div>`;
       }).join('');
     }
     if (elLocalNow) {
-      const t = new Intl.DateTimeFormat('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).format(now);
-      elLocalNow.textContent = 'LOCAL · ' + t;
+      elLocalNow.textContent = 'LOCAL · ' + new Intl.DateTimeFormat('en-IN', {
+        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false
+      }).format(now);
     }
   }
   paintClock();
-  const tick = setInterval(paintClock, 1000);
+  clockIv = setInterval(paintClock, 1000);
 
   return {
-    onShow() { convert(); convertCdt(); paintClock(); },
-    onHide() {},
-    destroy() { clearInterval(tick); }
+    onShow()  { doConvert(); doWorldConvert(); paintClock(); },
+    onHide()  { stopLive(); },
+    destroy() { stopLive(); if (clockIv) clearInterval(clockIv); }
   };
 }
