@@ -1,0 +1,19 @@
+{
+  "name": "Grammar.AI",
+  "tagline": "SmartApp · Modular · Local-First",
+  "version": "1.3.9",
+  "build": "2026.05.12",
+  "channel": "stable",
+  "history": [
+    {
+      "version": "1.3.9",
+      "date": "2026-05-12",
+      "notes": "Timezone WORLD↔IST: expanded to full world coverage (~65 cities, 10 regions). LIVE mode (ticking every second) + SELECT mode (pick any date/time). CDT/CST definitions shown contextually. Tab renamed to WORLD↔IST."
+    },
+    {
+      "version": "1.3.8",
+      "date": "2026-05-12",
+      "notes": "Point1-5: 🎨 hidden until output, Edge storage, merge dedup, module backups, CDT/CST↔IST timezone."
+    }
+  ]
+}
