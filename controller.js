@@ -1,169 +1,163 @@
 /* ────────────────────────────────────────────────────────────────
-   EMAIL MODULE · controller
+   TRANSLATOR MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
 import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
 
-const SCOPE = Storage.scope('email');
+const SCOPE = Storage.scope('translator');
 
 export default async function init({ root, module }) {
 
   let manifest = { options: {} };
-  try { manifest = await fetch('modules/email/manifest.json').then(r => r.json()); } catch {}
+  try { manifest = await fetch('modules/translator/manifest.json').then(r => r.json()); } catch {}
   const opts = manifest.options || {};
+  const directions = opts.directions || [];
 
   let prompts = {};
   try { prompts = await fetch('config/prompts.json').then(r => r.json()); } catch {}
 
   const state = {
-    type: SCOPE.get('type', opts.defaultType || 'professional'),
-    subject: SCOPE.get('subject', ''),
-    body: SCOPE.get('body', ''),
-    last: SCOPE.get('last', null)
+    direction: SCOPE.get('direction', directions[0]?.key || 'en2hi'),
+    modeByDir: SCOPE.get('modeByDir', {}),
+    input: SCOPE.get('input', ''),
+    output: SCOPE.get('output', ''),
+    history: SCOPE.get('history', [])
   };
 
-  const elTypes   = $('#email-types', root);
-  const elSubject = $('#email-subject', root);
-  const elBody    = $('#email-body', root);
-  const elGo      = $('#email-go', root);
-  const elClear   = $('#email-clear', root);
-  const elResults = $('#email-results', root);
-  const elSummary = $('#email-summary', root);
-  const elCorrected = $('#email-corrected', root);
-  const elImproved  = $('#email-improved', root);
-  const elPolished  = $('#email-polished', root);
-  const elSendOut = $('#email-sendout', root);
+  const elDir     = $('#dir-chips', root);
+  const elMode    = $('#tr-mode', root);
+  const elInput   = $('#tr-input', root);
+  const elOutput  = $('#tr-output', root);
+  const elGo      = $('#tr-go', root);
+  const elClear   = $('#tr-clear', root);
+  const elCopy    = $('#tr-copy', root);
+  const elDl      = $('#tr-download', root);
+  const elHist    = $('#tr-history', root);
+  const elSpeak   = $('#tr-speak', root);
+  const elColor   = $('#tr-color', root);
+  const elSendOut = $('#tr-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
+
+  // Wire output color picker
+  mountOutputColorPicker(elColor, elOutput);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
-  const elWC      = root.querySelector('[data-bind="wordCount"]');
+  const elHL      = root.querySelector('[data-bind="historyLine"]');
 
   function showSendOut() {
-    if (!state.last?.polished || !elSendOut) return;
+    if (!state.output || !elSendOut) return;
     elSendOut.classList.remove('hide');
     mountSendOut(elSendOut, {
-      module: 'EMAIL',
-      code: 'EM',
+      module: 'TRANSLATOR',
+      code: 'TR',
       items: [
-        { key: 'input',     label: 'INPUT',          getContent: () => `Subject: ${state.subject || ''}\n\n${state.body || ''}` },
-        { key: 'corrected', label: 'CORRECTED v1',   getContent: () => elCorrected.innerText || '' },
-        { key: 'improved',  label: 'IMPROVED v2',    getContent: () => elImproved.innerText  || '' },
-        { key: 'polished',  label: 'POLISHED v3',    getContent: () => elPolished.innerText  || '', default: true }
+        { key: 'input',  label: 'INPUT',  getContent: () => state.input },
+        { key: 'output', label: 'OUTPUT', getContent: () => state.output, default: true }
       ]
     });
   }
 
-  // Wire output color pickers — output only, input stays clean
-  mountOutputColorPicker($('#color-corrected', root), elCorrected);
-  mountOutputColorPicker($('#color-improved',  root), elImproved);
-  mountOutputColorPicker($('#color-polished',  root), elPolished);
-
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
-  // Build type chips
-  elTypes.innerHTML = (opts.types || []).map(t =>
-    `<button class="chip ${t.key === state.type ? 'on' : ''}" data-type="${esc(t.key)}">${esc(t.label)}</button>`
+  // Direction chips
+  elDir.innerHTML = directions.map(d =>
+    `<button class="chip ${d.key === state.direction ? 'on' : ''}" data-dir="${esc(d.key)}">${esc(d.label)}</button>`
   ).join('');
-  $$('.chip[data-type]', elTypes).forEach(b => {
+  $$('.chip[data-dir]', elDir).forEach(b => {
     b.addEventListener('click', () => {
-      state.type = b.dataset.type;
-      SCOPE.set('type', state.type);
-      $$('.chip[data-type]', elTypes).forEach(x => x.classList.toggle('on', x.dataset.type === state.type));
+      state.direction = b.dataset.dir;
+      SCOPE.set('direction', state.direction);
+      $$('.chip[data-dir]', elDir).forEach(x => x.classList.toggle('on', x.dataset.dir === state.direction));
+      paintModes();
     });
   });
 
-  // Restore drafts
-  elSubject.value = state.subject;
-  elBody.value = state.body;
-
-  // Restore last result if any
-  if (state.last) {
-    elSummary.innerHTML  = renderMd(state.last.summary   || '');
-    elCorrected.innerHTML = renderMd(state.last.corrected || '');
-    elImproved.innerHTML  = renderMd(state.last.improved  || '');
-    elPolished.innerHTML  = renderMd(state.last.polished  || '');
-    elResults.classList.remove('hide');
-    $('#color-corrected', root)?.classList.remove('hide');
-    $('#color-improved',  root)?.classList.remove('hide');
-    $('#color-polished',  root)?.classList.remove('hide');
+  paintModes();
+  elInput.value = state.input;
+  if (state.output) {
+    elOutput.innerHTML = renderMd(state.output);
+    elOutput.classList.remove('placeholder');
+    elColor?.classList.remove('hide');
     showSendOut();
   }
-
   refreshStatus();
-  updateWC();
+  refreshHist();
 
-  // Toolbar mounted on body textarea
   elTbMount.innerHTML = renderToolbarHTML();
   const tb = mountToolbar(elTbMount, {
-    textarea: elBody,
-    voiceLang: 'en-IN',
+    textarea: elInput,
+    voiceLang: state.direction === 'hi2en' ? 'hi-IN' : 'en-IN',
     enterToSend: false,
-    attachAccept: '.txt,.md,.json,.csv',
+    attachAccept: '.txt,.md',
     onAttach: async (file) => {
       const text = await file.text().catch(() => '');
-      elBody.value = (elBody.value ? elBody.value + '\n\n' : '') + text;
-      state.body = elBody.value;
-      SCOPE.set('body', state.body);
-      updateWC();
+      elInput.value = (elInput.value ? elInput.value + '\n\n' : '') + text;
+      state.input = elInput.value;
+      SCOPE.set('input', state.input);
       toast(`Attached: ${file.name}`, 'success');
     },
     onImprove: () => quickAction('quick_improve', 'Improving…'),
-    onTranslate: () => quickTranslate(),
-    onSend: () => analyze()
+    onTranslate: () => translate(),
+    onSend: () => translate()
   });
 
-  elSubject.addEventListener('input', () => { state.subject = elSubject.value; SCOPE.set('subject', state.subject); });
-  elBody.addEventListener('input', () => { state.body = elBody.value; SCOPE.set('body', state.body); updateWC(); });
+  elInput.addEventListener('input', () => { state.input = elInput.value; SCOPE.set('input', state.input); });
+  elMode.addEventListener('change', () => {
+    state.modeByDir[state.direction] = elMode.value;
+    SCOPE.set('modeByDir', state.modeByDir);
+  });
 
-  elGo.addEventListener('click', analyze);
+  elGo.addEventListener('click', translate);
   elClear.addEventListener('click', () => {
-    if (!confirm('Clear email and all results?')) return;
-    elSubject.value = ''; elBody.value = '';
-    state.subject = ''; state.body = ''; state.last = null;
-    SCOPE.set('subject', ''); SCOPE.set('body', ''); SCOPE.remove('last');
-    elResults.classList.add('hide');
-    updateWC();
+    if (!confirm('Clear input and output?')) return;
+    elInput.value = '';
+    elOutput.textContent = 'Translation will appear here…';
+    elOutput.classList.add('placeholder');
+    state.input = ''; state.output = '';
+    SCOPE.set('input', ''); SCOPE.set('output', '');
+    if (elSendOut) { elSendOut.classList.add('hide'); elSendOut.innerHTML = ''; }
   });
 
-  // SPEAK per version
-  function speak(text) {
+  // SPEAK
+  if (elSpeak) elSpeak.addEventListener('click', () => {
+    if (!state.output) { toast('Nothing to speak yet'); return; }
     if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-IN'; u.rate = 0.95;
+    const u = new SpeechSynthesisUtterance(state.output);
+    u.lang = state.direction === 'en2hi' ? 'hi-IN' : 'en-IN';
+    u.rate = 0.92;
     speechSynthesis.speak(u);
     toast('Speaking…');
-  }
-  $('#speak-corrected', root)?.addEventListener('click', () => {
-    if (!state.last?.corrected) { toast('Run analyze first'); return; }
-    speak(state.last.corrected);
-  });
-  $('#speak-improved', root)?.addEventListener('click', () => {
-    if (!state.last?.improved) { toast('Run analyze first'); return; }
-    speak(state.last.improved);
-  });
-  $('#speak-polished', root)?.addEventListener('click', () => {
-    if (!state.last?.polished) { toast('Run analyze first'); return; }
-    speak(state.last.polished);
   });
 
-  // Copy / download per version
-  $$('[data-copy]', root).forEach(b => b.addEventListener('click', () => {
-    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.copy];
-    const text = el?.innerText || state.last?.[b.dataset.copy] || '';
-    if (!text) { toast('Run analyze first'); return; }
+  elCopy.addEventListener('click', () => {
+    const text = elOutput.innerText || state.output || '';
+    if (!text) { toast('Nothing to copy yet'); return; }
     copyToClipboard(text);
-  }));
-  $$('[data-dl]', root).forEach(b => b.addEventListener('click', () => {
-    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.dl];
-    const text = el?.innerText || state.last?.[b.dataset.dl] || '';
-    if (!text) { toast('Run analyze first'); return; }
-    downloadFile(gFileName('EMAIL', 'EM'), `Subject: ${state.subject || ''}\n\n${text}`, 'text/plain');
-  }));
+  });
+  elDl.addEventListener('click', () => {
+    const text = elOutput.innerText || state.output || '';
+    if (!text) { toast('Nothing to download yet'); return; }
+    downloadFile(gFileName('TRANSLATOR', 'TR'), text, 'text/plain');
+  });
+
+  elHist.addEventListener('click', () => {
+    if (state.history.length === 0) { toast('No history yet'); return; }
+    openHistorySheet();
+  });
+
+  function paintModes() {
+    const dir = directions.find(d => d.key === state.direction);
+    if (!dir) return;
+    const cur = state.modeByDir[state.direction] || dir.default;
+    elMode.innerHTML = (dir.modes || []).map(m =>
+      `<option value="${esc(m.key)}" ${m.key === cur ? 'selected' : ''}>${esc(m.label)}</option>`
+    ).join('');
+  }
 
   function showNoRouteHelp() {
     openSheet(`
@@ -184,71 +178,60 @@ export default async function init({ root, module }) {
     }, 50);
   }
 
-  async function analyze() {
-    const subjectRaw = elSubject.value.trim();
-    const bodyRaw    = elBody.value.trim();
-    if (!bodyRaw) { toast('Enter the email body first'); return; }
+  async function translate() {
+    const raw = elInput.value.trim();
+    if (!raw) { toast('Type something to translate'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
 
-    // Strip color tags before sending to AI
-    const subject = stripColorTags(subjectRaw);
-    const body    = stripColorTags(bodyRaw);
+    const text = stripColorTags(raw);
 
-    const types = prompts.email_types || {};
-    const typeLabel = types[state.type] || 'professional email';
+    const dir = directions.find(d => d.key === state.direction);
+    const mode = elMode.value || dir.default;
+    const sys = state.direction === 'en2hi' ? prompts.translator_en_system : prompts.translator_hi_system;
+    const modes = state.direction === 'en2hi' ? prompts.translator_en_modes : prompts.translator_hi_modes;
+    const modeText = modes?.[mode] || '';
 
     elGo.disabled = true;
-    elGo.textContent = 'ANALYZING…';
-    elResults.classList.add('hide');
+    elGo.textContent = 'TRANSLATING…';
+    elOutput.classList.remove('placeholder');
+    elOutput.textContent = 'Working…';
 
     try {
-      const userPrompt = `Analyse and correct this ${typeLabel}. Subject: "${subject || 'N/A'}". Body: "${body}"
-
-Return ONLY this JSON:
-{
-  "summary": "Grammar check summary: list all grammar errors found, punctuation issues, tone problems. Be specific.",
-  "corrected": "Corrected version — fix ONLY grammar errors, keep original meaning and structure exactly.",
-  "improved": "Improved version — fix grammar AND improve clarity, flow, and tone for ${typeLabel}.",
-  "polished": "Polished version — make it perfectly professional, impactful, and compelling for ${typeLabel}."
-}`;
-
       const r = await AI.chat([
-        { role: 'system', content: prompts.email_system || 'Return ONLY valid JSON, no markdown.' },
-        { role: 'user',   content: userPrompt }
-      ], { temperature: 0.5, maxTokens: 3000 });
-
-      const cleaned = r.text.replace(/```json|```/g, '').trim();
-      const data = JSON.parse(cleaned);
-
-      state.last = {
-        summary:  data.summary  || '',
-        corrected: data.corrected || '',
-        improved:  data.improved  || '',
-        polished:  data.polished  || ''
-      };
-      SCOPE.set('last', state.last);
-
-      elSummary.innerHTML  = renderMd(state.last.summary);
-      elCorrected.innerHTML = renderMd(state.last.corrected);
-      elImproved.innerHTML  = renderMd(state.last.improved);
-      elPolished.innerHTML  = renderMd(state.last.polished);
-      elResults.classList.remove('hide');
-      // Reveal color pickers now that output exists
-      $('#color-corrected', root)?.classList.remove('hide');
-      $('#color-improved',  root)?.classList.remove('hide');
-      $('#color-polished',  root)?.classList.remove('hide');
+        { role: 'system', content: (sys || '') + modeText },
+        { role: 'user',   content: 'Translate:\n\n' + text }
+      ], { temperature: 0.4, maxTokens: 1500 });
+      elOutput.innerHTML = renderMd(r.text);
+      state.output = r.text;
+      SCOPE.set('output', state.output);
+      elColor?.classList.remove('hide');
       showSendOut();
+
+      // Push to history
+      state.history.unshift({
+        ts: Date.now(),
+        direction: state.direction,
+        mode,
+        input: text,
+        output: r.text
+      });
+      const max = opts.historyMax || 20;
+      if (state.history.length > max) state.history = state.history.slice(0, max);
+      SCOPE.set('history', state.history);
+      refreshHist();
+
       toast('Done · ' + r.route, 'success');
     } catch (e) {
-      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
+      elOutput.textContent = 'Error: ' + (e.details?.[0] || e.message);
+      toast('Failed', 'error');
     } finally {
       elGo.disabled = false;
-      elGo.textContent = '▸ ANALYZE & CORRECT';
+      elGo.textContent = '▸ TRANSLATE';
     }
   }
 
   async function quickAction(promptKey, busyMsg) {
-    const raw = elBody.value.trim();
+    const raw = elInput.value.trim();
     if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
     const text = stripColorTags(raw);
@@ -258,28 +241,67 @@ Return ONLY this JSON:
         { role: 'system', content: prompts[promptKey] || '' },
         { role: 'user',   content: text }
       ], { temperature: 0.3, maxTokens: 700 });
-      elBody.value = r.text;
-      state.body = r.text;
-      SCOPE.set('body', state.body);
-      updateWC();
+      elInput.value = r.text;
+      state.input = r.text;
+      SCOPE.set('input', state.input);
       toast('Done · ' + r.route, 'success');
     } catch (e) {
       toast('Failed: ' + (e.details?.[0] || e.message), 'error');
     }
   }
 
-  function quickTranslate() {
-    const raw = elBody.value.trim();
-    if (!raw) { toast('Type something first'); return; }
-    const text = stripColorTags(raw);
-    const isHindi = /[\u0900-\u097F]/.test(text);
-    quickAction(isHindi ? 'quick_translate_hi2en' : 'quick_translate_en2hi', isHindi ? 'Hindi → English…' : 'English → Hindi…');
-  }
-
-  function updateWC() {
-    const t = elBody.value.trim();
-    const n = t ? t.split(/\s+/).length : 0;
-    if (elWC) elWC.textContent = n + ' WORD' + (n === 1 ? '' : 'S');
+  function openHistorySheet() {
+    openSheet(`
+      <div class="kicker"><span>HISTORY</span><span class="lime">${state.history.length}/${opts.historyMax || 20}</span></div>
+      <div class="sheet-title">Translation history</div>
+      <div class="col" style="gap:8px;max-height:50vh;overflow-y:auto;">
+        ${state.history.map((h, i) => `
+          <div class="frame subtle" style="padding:10px 12px;">
+            <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+            <div class="row between mono" style="font-size:9px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">
+              <span>${esc(h.direction)} · ${esc(h.mode)}</span>
+              <span>${esc(timeAgo(h.ts))}</span>
+            </div>
+            <div class="mono" style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:4px;">${esc(h.input).slice(0,140)}${h.input.length>140?'…':''}</div>
+            <div class="mono lime" style="font-size:11px;line-height:1.5;">${esc(h.output).slice(0,140)}${h.output.length>140?'…':''}</div>
+            <button class="btn-ghost mt-8" data-restore="${i}" style="font-size:9px;letter-spacing:0.16em;">↺ RESTORE</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="row gap-12 mt-12">
+        <button class="btn btn-rust flex-1" id="hist-clear">CLEAR ALL</button>
+        <button class="btn btn-primary flex-1" id="hist-close">CLOSE</button>
+      </div>
+    `);
+    setTimeout(() => {
+      $$('[data-restore]').forEach(b => b.addEventListener('click', () => {
+        const h = state.history[Number(b.dataset.restore)];
+        if (!h) return;
+        state.direction = h.direction;
+        SCOPE.set('direction', state.direction);
+        $$('.chip[data-dir]', elDir).forEach(x => x.classList.toggle('on', x.dataset.dir === state.direction));
+        paintModes();
+        elMode.value = h.mode;
+        elInput.value = h.input;
+        elOutput.innerHTML = renderMd(h.output);
+        elOutput.classList.remove('placeholder');
+        state.input = h.input;
+        state.output = h.output;
+        SCOPE.set('input', h.input);
+        SCOPE.set('output', h.output);
+        closeSheet();
+        toast('Restored', 'success');
+      }));
+      document.getElementById('hist-clear')?.addEventListener('click', () => {
+        if (!confirm('Clear all translation history?')) return;
+        state.history = [];
+        SCOPE.set('history', []);
+        refreshHist();
+        closeSheet();
+        toast('History cleared', 'success');
+      });
+      document.getElementById('hist-close')?.addEventListener('click', closeSheet);
+    }, 50);
   }
 
   function refreshStatus() {
@@ -287,9 +309,12 @@ Return ONLY this JSON:
     if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
+  function refreshHist() {
+    if (elHL) elHL.textContent = `HISTORY ${state.history.length}/${opts.historyMax || 20}`;
+  }
 
-  mountModuleBackup($('#email-module-backup', root), {
-    moduleId: 'email', moduleCode: 'EM', scope: SCOPE
+  mountModuleBackup($('#tr-module-backup', root), {
+    moduleId: 'translator', moduleCode: 'TR', scope: SCOPE
   });
 
   return {

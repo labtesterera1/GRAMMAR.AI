@@ -1,12 +1,12 @@
 <div class="page-inner">
   <div class="kicker">
-    <span data-bind="moduleNum">MOD 03 / EMAIL</span>
+    <span data-bind="moduleNum">MOD 04 / TRANSLATOR</span>
     <span class="lime" data-bind="status">● READY</span>
   </div>
-  <div class="headline">Email</div>
+  <div class="headline">Translator</div>
   <div class="subline">
-    <span>DRAFT · POLISH · SEND</span>
-    <span data-bind="wordCount">0 WORDS</span>
+    <span>EN · HI · CONVERT</span>
+    <span data-bind="historyLine">HISTORY 0/20</span>
   </div>
   <div class="ticks">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -16,71 +16,34 @@
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
-  <div class="s-ttl"><span>EMAIL TYPE</span></div>
-  <div class="lang-chips" id="email-types"></div>
+  <div class="lang-chips" id="dir-chips"></div>
 
-  <div class="s-ttl"><span>SUBJECT</span></div>
-  <input class="input" id="email-subject" placeholder="Email subject (optional)…" autocomplete="off" />
+  <div class="s-ttl"><span>MODE</span></div>
+  <select class="select" id="tr-mode"></select>
 
-  <div class="s-ttl"><span>BODY</span></div>
-  <textarea
-    class="composer-input"
-    id="email-body"
-    placeholder="Type or paste your email body here…"
-    rows="6"
-    aria-label="Email body"></textarea>
+  <div class="s-ttl"><span>INPUT</span></div>
+  <textarea class="composer-input" id="tr-input" placeholder="Type text to translate…" rows="4" aria-label="Translate input"></textarea>
   <div id="toolbar-mount"></div>
 
   <div class="row gap-12 mt-12">
-    <button class="btn btn-primary flex-1" id="email-go">▸ ANALYZE &amp; CORRECT</button>
-    <button class="btn btn-rust" id="email-clear">CLEAR</button>
+    <button class="btn btn-primary flex-1" id="tr-go">▸ TRANSLATE</button>
+    <button class="btn btn-rust" id="tr-clear">CLEAR</button>
   </div>
 
-  <div id="email-results" class="hide">
-
-    <div class="s-ttl"><span>GRAMMAR CHECK</span><span class="num">SUMMARY</span></div>
-    <div class="frame subtle">
-      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-      <div class="output-box" id="email-summary"></div>
-    </div>
-
-    <div class="s-ttl"><span>CORRECTED</span><span class="num">v1</span></div>
-    <div class="frame subtle">
-      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-      <div class="output-box" id="email-corrected"></div>
-    </div>
-    <div class="row gap-12 mt-8">
-      <button class="btn" id="speak-corrected">🔊</button>
-      <button class="btn hide" id="color-corrected" title="Color this output">🎨</button>
-      <button class="btn flex-1" data-copy="corrected">⧉ COPY</button>
-      <button class="btn flex-1" data-dl="corrected">⬇ TXT</button>
-    </div>
-
-    <div class="s-ttl"><span>IMPROVED</span><span class="num">v2</span></div>
-    <div class="frame subtle">
-      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-      <div class="output-box" id="email-improved"></div>
-    </div>
-    <div class="row gap-12 mt-8">
-      <button class="btn" id="speak-improved">🔊</button>
-      <button class="btn hide" id="color-improved" title="Color this output">🎨</button>
-      <button class="btn flex-1" data-copy="improved">⧉ COPY</button>
-      <button class="btn flex-1" data-dl="improved">⬇ TXT</button>
-    </div>
-
-    <div class="s-ttl"><span>POLISHED</span><span class="num">v3</span></div>
-    <div class="frame subtle">
-      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-      <div class="output-box" id="email-polished"></div>
-    </div>
-    <div class="row gap-12 mt-8">
-      <button class="btn" id="speak-polished">🔊</button>
-      <button class="btn hide" id="color-polished" title="Color this output">🎨</button>
-      <button class="btn flex-1" data-copy="polished">⧉ COPY</button>
-      <button class="btn flex-1" data-dl="polished">⬇ TXT</button>
-    </div>
-
-    <div id="email-sendout" class="hide"></div>
-    <div id="email-module-backup" class="mt-4"></div>
+  <div class="s-ttl"><span>OUTPUT</span></div>
+  <div class="frame subtle">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <div class="output-box placeholder" id="tr-output">Translation will appear here…</div>
   </div>
+
+  <div class="row gap-12 mt-12">
+    <button class="btn hide" id="tr-color" title="Color output text">🎨</button>
+    <button class="btn flex-1" id="tr-speak">🔊 SPEAK</button>
+    <button class="btn flex-1" id="tr-copy">⧉ COPY</button>
+    <button class="btn flex-1" id="tr-download">⬇ DOWNLOAD</button>
+    <button class="btn flex-1" id="tr-history">📚 HISTORY</button>
+  </div>
+
+  <div id="tr-sendout" class="hide"></div>
+  <div id="tr-module-backup" class="mt-4"></div>
 </div>
