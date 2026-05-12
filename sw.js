@@ -7,7 +7,7 @@
    - API calls: never cached (handled by browser, sent direct)
    ──────────────────────────────────────────────────────────────── */
 
-const VERSION = 'gai-v1.3.9';
+const VERSION = 'gai-v1.4.0';
 const SHELL_CACHE  = `${VERSION}-shell`;
 const CONFIG_CACHE = `${VERSION}-config`;
 
@@ -62,16 +62,19 @@ const SHELL_URLS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(SHELL_CACHE).then(c => c.addAll(SHELL_URLS).catch(err => console.warn('Cache addAll partial fail:', err)))
-      .then(() => self.skipWaiting())
+    caches.open(SHELL_CACHE).then(cache =>
+      cache.addAll(SHELL_URLS.map(u => new Request(u, { cache: 'reload' })))
+    )
   );
+  /* Force immediate activation — new version served on next page load. */
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => !k.startsWith(VERSION)).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    ).then(() => self.clients.claim()) // take control of all open pages immediately
   );
 });
 
