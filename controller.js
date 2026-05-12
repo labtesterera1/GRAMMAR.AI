@@ -1,564 +1,671 @@
 /* ────────────────────────────────────────────────────────────────
-   EXERCISE MODULE · controller
-   Sub-tabs: tense / flash / vocab / story
+   NOTES MODULE · controller · v1.0.0
+   Gate: 6-digit PIN (SHA-256 hashed in localStorage)
+   Features: Quick/Daily/Study types, tags, search, filter,
+   AI (improve/summarise/translate/explain), full toolbar,
+   copy, send to chat, download TXT/JSON, import JSON
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountModuleBackup } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, pickFile, readFileAsText, openSheet, closeSheet, timeAgo, gFileName, renderMd, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
+import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
+import { exportFilename, exportFilenameTxt } from '../../core/settings.js';
 
-const SCOPE = Storage.scope('exercise');
+const SCOPE = Storage.scope('notes');
+
+/* ─── SHA-256 hash helper (Web Crypto) ─── */
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+function fmtDate(ts) {
+  return new Intl.DateTimeFormat('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }).format(new Date(ts));
+}
 
 export default async function init({ root, module }) {
 
   let manifest = { options: {} };
-  try { manifest = await fetch('modules/exercise/manifest.json').then(r => r.json()); } catch {}
+  try { manifest = await fetch('modules/notes/manifest.json').then(r => r.json()); } catch {}
   const opts = manifest.options || {};
 
   let prompts = {};
   try { prompts = await fetch('config/prompts.json').then(r => r.json()); } catch {}
 
+  /* ─── Persistent state ─── */
   const state = {
-    tab: SCOPE.get('tab', opts.defaultTab || 'tense'),
-
-    // tense
-    selectedTense: SCOPE.get('selectedTense', ''),
-    tenseData: SCOPE.get('tenseData', null),
-    tenseShowAns: false,
-
-    // flash
-    flashCards: SCOPE.get('flashCards', []),
-    flashTopic: SCOPE.get('flashTopic', ''),
-    flashCategory: SCOPE.get('flashCategory', 'tenses'),
-    flashIdx: 0,
-    flashFlipped: false,
-    flashKnown: SCOPE.get('flashKnown', 0),
-
-    // vocab
-    vocabData: SCOPE.get('vocabData', null),
-    vocabLevel: SCOPE.get('vocabLevel', 'intermediate'),
-
-    // story
-    storyData: SCOPE.get('storyData', null),
-    storyTopic: SCOPE.get('storyTopic', 'daily life')
+    unlocked: false,
+    notes: SCOPE.get('notes', []),
+    filter: 'all',
+    searchQ: '',
+    editingId: null,
+    aiResult: null,
+    toolbarCtrl: null
   };
 
-  const elModNum  = root.querySelector('[data-bind="moduleNum"]');
-  const elStatus  = root.querySelector('[data-bind="status"]');
-  const elSubInfo = root.querySelector('[data-bind="subInfo"]');
-  if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
+  /* ─── Gate elements ─── */
+  const elGate    = $('#notes-gate', root);
+  const elMain    = $('#notes-main', root);
+  const elGateStatus = $('#gate-status', root);
+  const elGateSub    = $('#gate-sub', root);
+  const elGateLabel  = $('#gate-label', root);
+  const elPinDots    = $('#pin-dots', root);
+  const elPinError   = $('#pin-error', root);
+  const elPinOk      = $('#pin-ok', root);
+  const elPinClear   = $('#pin-clear', root);
+  const elPinResetRow = $('#pin-reset-row', root);
+  const elPinReset   = $('#pin-reset', root);
 
-  /* ─── Sub-tabs ─── */
-  const elTabs = $('#ex-tabs', root);
-  elTabs.innerHTML = (opts.subTabs || []).map(t =>
-    `<button class="chip ${t.key === state.tab ? 'on' : ''}" data-tab="${esc(t.key)}">${esc(t.label)}</button>`
-  ).join('');
-  $$('.chip[data-tab]', elTabs).forEach(b => {
+  /* ─── PIN state ─── */
+  let pinEntry = '';
+  const storedHash = () => SCOPE.get('pinHash', null);
+  const hasPin     = () => !!storedHash();
+  let pinMode      = hasPin() ? 'verify' : 'setup-1'; // setup-1, setup-2, verify
+  let setup1Hash   = '';
+
+  async function initGate() {
+    pinEntry = '';
+    if (!hasPin()) {
+      pinMode = 'setup-1';
+      elGateLabel.textContent = 'SET A 6-DIGIT PASSWORD';
+      elGateSub.textContent = 'FIRST TIME SETUP';
+      elPinResetRow.classList.add('hide');
+    } else {
+      pinMode = 'verify';
+      elGateLabel.textContent = 'ENTER 6-DIGIT PASSWORD';
+      elGateSub.textContent = 'ENTER PASSWORD';
+      elPinResetRow.classList.remove('hide');
+    }
+    paintDots();
+    elPinError.textContent = '';
+  }
+
+  function paintDots() {
+    $$('.pin-dot', elPinDots).forEach((d, i) => {
+      d.classList.toggle('filled', i < pinEntry.length);
+      d.classList.toggle('active', i === pinEntry.length);
+    });
+  }
+
+  // Numpad wiring
+  $$('.num-btn[data-n]', root).forEach(b => {
     b.addEventListener('click', () => {
-      state.tab = b.dataset.tab;
-      SCOPE.set('tab', state.tab);
-      paintTab();
+      if (pinEntry.length >= 6) return;
+      pinEntry += b.dataset.n;
+      paintDots();
+      elPinError.textContent = '';
+      if (pinEntry.length === 6) elPinOk.classList.add('ready');
+    });
+  });
+  elPinClear.addEventListener('click', () => {
+    pinEntry = pinEntry.slice(0, -1);
+    paintDots();
+    elPinOk.classList.remove('ready');
+    elPinError.textContent = '';
+  });
+  elPinOk.addEventListener('click', () => handlePinSubmit());
+  // Also allow keyboard
+  document.addEventListener('keydown', gateKeyHandler);
+
+  async function handlePinSubmit() {
+    if (pinEntry.length < 6) { elPinError.textContent = 'Enter all 6 digits'; return; }
+
+    if (pinMode === 'setup-1') {
+      setup1Hash = await sha256(pinEntry);
+      pinMode = 'setup-2';
+      pinEntry = '';
+      elGateLabel.textContent = 'CONFIRM PASSWORD';
+      elGateSub.textContent = 'RE-ENTER SAME DIGITS';
+      paintDots();
+      elPinError.textContent = '';
+      return;
+    }
+
+    if (pinMode === 'setup-2') {
+      const confirmHash = await sha256(pinEntry);
+      if (confirmHash !== setup1Hash) {
+        elPinError.textContent = 'Passwords do not match — try again';
+        pinEntry = ''; pinMode = 'setup-1'; setup1Hash = '';
+        elGateLabel.textContent = 'SET A 6-DIGIT PASSWORD';
+        elGateSub.textContent = 'START OVER';
+        paintDots();
+        return;
+      }
+      SCOPE.set('pinHash', confirmHash);
+      toast('Password set successfully', 'success');
+      unlock();
+      return;
+    }
+
+    if (pinMode === 'verify') {
+      const entered = await sha256(pinEntry);
+      if (entered !== storedHash()) {
+        elPinError.textContent = 'Incorrect password — try again';
+        pinEntry = '';
+        paintDots();
+        return;
+      }
+      unlock();
+    }
+  }
+
+  function unlock() {
+    state.unlocked = true;
+    document.removeEventListener('keydown', gateKeyHandler);
+    elGate.classList.add('hide');
+    elMain.classList.remove('hide');
+    renderNotes();
+  }
+
+  function lock() {
+    state.unlocked = false;
+    elMain.classList.add('hide');
+    elGate.classList.remove('hide');
+    pinEntry = ''; pinMode = 'verify';
+    initGate();
+  }
+
+  elPinReset.addEventListener('click', () => {
+    if (!confirm('This will delete your current password. You will need to set a new one. Continue?')) return;
+    SCOPE.remove('pinHash');
+    pinMode = 'setup-1';
+    pinEntry = '';
+    elGateLabel.textContent = 'SET A NEW 6-DIGIT PASSWORD';
+    elGateSub.textContent = 'PASSWORD RESET';
+    elPinResetRow.classList.add('hide');
+    setup1Hash = '';
+    paintDots();
+    elPinError.textContent = '';
+    toast('Password cleared — set a new one');
+  });
+
+  function gateKeyHandler(e) {
+    if (e.key >= '0' && e.key <= '9' && pinEntry.length < 6) {
+      pinEntry += e.key;
+      paintDots();
+      if (pinEntry.length === 6) elPinOk.classList.add('ready');
+    } else if (e.key === 'Backspace') {
+      pinEntry = pinEntry.slice(0, -1);
+      paintDots();
+    } else if (e.key === 'Enter') {
+      handlePinSubmit();
+    }
+  }
+
+  initGate();
+
+  /* ─────────────────────────────────────────────
+     NOTES MAIN SECTION
+     ───────────────────────────────────────────── */
+
+  const elNotesList  = $('#notes-list', root);
+  const elNotesEmpty = $('#notes-empty', root);
+  const elStatsLine  = $('#notes-stats-line', root);
+  const elSearch     = $('#notes-search', root);
+  const elNewBtn     = $('#notes-new-btn', root);
+  const elLockBtn    = $('#notes-lock-btn', root);
+  const elDlBtn      = $('#notes-download-btn', root);
+
+  // Filter chips
+  $$('.chip[data-filter]', root).forEach(b => {
+    b.addEventListener('click', () => {
+      state.filter = b.dataset.filter;
+      $$('.chip[data-filter]', root).forEach(x => x.classList.toggle('on', x.dataset.filter === state.filter));
+      renderNotes();
     });
   });
 
-  function paintTab() {
-    $$('.chip[data-tab]', elTabs).forEach(x => x.classList.toggle('on', x.dataset.tab === state.tab));
-    $$('.ex-sub', root).forEach(s => s.classList.toggle('hide', s.dataset.sub !== state.tab));
-    if (elSubInfo) elSubInfo.textContent = state.tab.toUpperCase();
-  }
-  paintTab();
-  refreshStatus();
+  elSearch.addEventListener('input', () => { state.searchQ = elSearch.value; renderNotes(); });
+  elNewBtn.addEventListener('click', () => openEditor(null));
+  elLockBtn.addEventListener('click', lock);
+  elDlBtn.addEventListener('click', openDownloadSheet);
 
-  function showNoRouteHelp() {
+  /* ─── Render notes list ─── */
+  function renderNotes() {
+    let notes = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+
+    if (state.filter !== 'all') {
+      notes = notes.filter(n => n.type === state.filter);
+    }
+    if (state.searchQ.trim()) {
+      const q = state.searchQ.toLowerCase();
+      notes = notes.filter(n =>
+        (n.title || '').toLowerCase().includes(q) ||
+        (n.content || '').toLowerCase().includes(q) ||
+        (n.tags || []).some(t => t.toLowerCase().includes(q))
+      );
+    }
+
+    updateStats();
+
+    if (!notes.length) {
+      elNotesList.innerHTML = '';
+      elNotesEmpty.classList.remove('hide');
+      return;
+    }
+    elNotesEmpty.classList.add('hide');
+
+    const typeIcons = { quick: '⚡', daily: '📓', study: '📚' };
+    elNotesList.innerHTML = notes.map(n => {
+      const preview = (n.content || '').slice(0, 280);
+      const isLong  = (n.content || '').length > 200;
+      const tagsHtml = (n.tags || []).map(t =>
+        `<span class="note-tag">${esc(t)}</span>`
+      ).join('');
+      return `
+        <div class="note-card frame subtle" data-nid="${esc(n.id)}">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="note-header">
+            <span class="note-type-badge">${typeIcons[n.type] || '📝'} ${esc(n.type)}</span>
+            <span class="note-date mono">${esc(timeAgo(n.updatedAt))}</span>
+          </div>
+          ${n.title ? `<div class="note-title serif">${esc(n.title)}</div>` : ''}
+          <div class="note-preview mono ${isLong ? 'collapsed' : ''}" id="nprev-${esc(n.id)}">${renderMd(preview)}${isLong ? '<span class="dim">…</span>' : ''}</div>
+          ${tagsHtml ? `<div class="note-tags">${tagsHtml}</div>` : ''}
+          <div class="note-actions">
+            ${isLong ? `<button class="note-act" data-expand="${esc(n.id)}">▼ MORE</button>` : ''}
+            <button class="note-act" data-edit="${esc(n.id)}">✏️ EDIT</button>
+            <button class="note-act" data-copy="${esc(n.id)}">⧉ COPY</button>
+            <button class="note-act" data-chat="${esc(n.id)}">💬 CHAT</button>
+            <button class="note-act note-act-danger" data-del="${esc(n.id)}">🗑</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Wire card actions
+    $$('[data-expand]', elNotesList).forEach(b => {
+      b.addEventListener('click', () => {
+        const id   = b.dataset.expand;
+        const prev = document.getElementById('nprev-' + id);
+        const collapsed = prev.classList.contains('collapsed');
+        prev.classList.toggle('collapsed', !collapsed);
+        b.textContent = collapsed ? '▲ LESS' : '▼ MORE';
+      });
+    });
+    $$('[data-edit]', elNotesList).forEach(b => {
+      b.addEventListener('click', () => openEditor(b.dataset.edit));
+    });
+    $$('[data-copy]', elNotesList).forEach(b => {
+      b.addEventListener('click', () => {
+        const n = state.notes.find(x => x.id === b.dataset.copy);
+        if (n) copyToClipboard((n.title ? n.title + '\n\n' : '') + n.content);
+      });
+    });
+    $$('[data-chat]', elNotesList).forEach(b => {
+      b.addEventListener('click', () => {
+        const n = state.notes.find(x => x.id === b.dataset.chat);
+        if (!n) return;
+        // Navigate to chat and pre-fill
+        Storage.scope('chat').set('draft', (n.title ? n.title + '\n\n' : '') + n.content);
+        go('m:chat');
+        toast('Note sent to Chat', 'success');
+      });
+    });
+    $$('[data-del]', elNotesList).forEach(b => {
+      b.addEventListener('click', () => {
+        if (!confirm('Delete this note?')) return;
+        state.notes = state.notes.filter(n => n.id !== b.dataset.del);
+        saveNotes();
+        renderNotes();
+        toast('Note deleted', 'success');
+      });
+    });
+  }
+
+  function updateStats() {
+    const total = state.notes.length;
+    const q = state.notes.filter(n => n.type === 'quick').length;
+    const d = state.notes.filter(n => n.type === 'daily').length;
+    const s = state.notes.filter(n => n.type === 'study').length;
+    if (elStatsLine) {
+      elStatsLine.textContent = `${total} NOTE${total !== 1 ? 'S' : ''} · ⚡${q} 📓${d} 📚${s}`;
+    }
+  }
+
+  function saveNotes() {
+    SCOPE.set('notes', state.notes);
+  }
+
+  /* ─── NOTE EDITOR SHEET ─── */
+
+  function openEditor(id) {
+    state.editingId = id;
+    const n = id ? state.notes.find(x => x.id === id) : null;
+
+    const typeOpts = (opts.noteTypes || []).map(t => ({
+      ...t,
+      sel: (n ? n.type : 'quick') === t.key
+    }));
+    const tagOpts = (opts.tags || []).map(tag => ({
+      tag,
+      sel: n ? (n.tags || []).includes(tag) : false
+    }));
+    const aiActions = opts.aiActions || [];
+
     openSheet(`
-      <div class="kicker"><span>SETUP REQUIRED</span><span class="rust">● NO ROUTE</span></div>
-      <div class="sheet-title">Connect an AI route</div>
-      <div class="frame subtle output-box" style="padding:14px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono" style="font-size:12px;">Set a Worker URL or any provider key in Settings.</div>
+      <div class="sheet-handle"></div>
+      <div class="sheet-inner">
+        <div class="kicker"><span>${n ? 'EDIT NOTE' : 'NEW NOTE'}</span><span class="lime">${n ? 'UPDATE' : 'CREATE'}</span></div>
+        <div class="sheet-title">${n ? esc(n.title || 'Untitled') : 'New Note'}</div>
+
+        <div class="field">
+          <label class="field-label">NOTE TYPE</label>
+          <div class="lang-chips" id="ed-types">
+            ${typeOpts.map(t => `
+              <button class="chip ${t.sel ? 'on' : ''}" data-ntype="${esc(t.key)}">${esc(t.label)}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">TITLE (optional)</label>
+          <input class="input" id="ed-title" placeholder="e.g. Present Perfect rules, Daily reflection…" value="${esc(n?.title || '')}" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label class="field-label">TAGS</label>
+          <div class="lang-chips" id="ed-tags">
+            ${tagOpts.map(t => `
+              <button class="chip ${t.sel ? 'on' : ''}" data-tag="${esc(t.tag)}">${esc(t.tag)}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">CONTENT · <span id="ed-wc">0 WORDS</span>
+            <button class="notes-casual-btn" id="ed-casual" title="Toggle casual reading mode">Aa</button>
+          </label>
+          <textarea class="composer-input" id="ed-content" placeholder="Write your note here… no length limit." rows="6" style="max-height:280px;">${esc(n?.content || '')}</textarea>
+          <div id="ed-toolbar"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">AI TOOLS</label>
+          <div class="lang-chips">
+            ${aiActions.map(a => `
+              <button class="chip" data-ai="${esc(a.key)}">${esc(a.label)}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div id="ed-ai-result" class="hide">
+          <div class="frame subtle" style="padding:12px 14px;">
+            <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+            <div class="s-ttl" style="margin-top:0;"><span id="ed-ai-label">AI RESULT</span></div>
+            <div class="output-box" id="ed-ai-text" style="border:none;padding:0;background:transparent;"></div>
+            <div class="row gap-12 mt-8">
+              <button class="btn btn-primary flex-1" id="ed-ai-apply">USE THIS</button>
+              <button class="btn flex-1" id="ed-ai-dismiss">DISMISS</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row gap-12 mt-12">
+          <button class="btn flex-1" id="ed-cancel">CANCEL</button>
+          <button class="btn btn-primary flex-1" id="ed-save">💾 SAVE NOTE</button>
+          ${n ? `<button class="btn btn-rust" id="ed-delete">🗑</button>` : ''}
+        </div>
       </div>
-      <div class="row gap-12 mt-12">
-        <button class="btn flex-1" id="nr-cancel">CANCEL</button>
-        <button class="btn btn-primary flex-1" id="nr-go">⚙ OPEN SETTINGS</button>
+    `);
+
+    setTimeout(() => {
+      // Wire type chips
+      const edTypes = document.getElementById('ed-types');
+      const edTags  = document.getElementById('ed-tags');
+      const edTitle = document.getElementById('ed-title');
+      const edContent = document.getElementById('ed-content');
+      const edWc    = document.getElementById('ed-wc');
+      const edCasual = document.getElementById('ed-casual');
+      const edTbMount = document.getElementById('ed-toolbar');
+      const edAiResult = document.getElementById('ed-ai-result');
+      const edAiText = document.getElementById('ed-ai-text');
+      const edAiLabel = document.getElementById('ed-ai-label');
+
+      // Casual mode — same JetBrains Mono, just breathes more
+      const casualOn = SCOPE.get('casualMode', false);
+      function applyCasual(on) {
+        if (!edContent) return;
+        edContent.style.fontSize   = on ? '15px'  : '';
+        edContent.style.lineHeight = on ? '1.95'  : '';
+        edContent.style.letterSpacing = on ? '0.01em' : '';
+        if (edCasual) {
+          edCasual.classList.toggle('on', on);
+          edCasual.title = on ? 'Casual mode ON — tap to turn off' : 'Toggle casual reading mode';
+        }
+      }
+      applyCasual(casualOn);
+      edCasual?.addEventListener('click', () => {
+        const next = !SCOPE.get('casualMode', false);
+        SCOPE.set('casualMode', next);
+        applyCasual(next);
+        toast(next ? 'Casual mode ON — breathes more' : 'Casual mode OFF', 'success');
+      });
+
+      // Word count
+      function updateWC() {
+        const t = edContent.value.trim();
+        const n = t ? t.split(/\s+/).length : 0;
+        if (edWc) edWc.textContent = n + ' WORD' + (n === 1 ? '' : 'S');
+      }
+      updateWC();
+      edContent.addEventListener('input', updateWC);
+
+      // Type toggle
+      if (edTypes) {
+        $$('.chip[data-ntype]', edTypes).forEach(b => {
+          b.addEventListener('click', () => {
+            $$('.chip[data-ntype]', edTypes).forEach(x => x.classList.toggle('on', x.dataset.ntype === b.dataset.ntype));
+          });
+        });
+      }
+
+      // Tag toggle
+      if (edTags) {
+        $$('.chip[data-tag]', edTags).forEach(b => {
+          b.addEventListener('click', () => b.classList.toggle('on'));
+        });
+      }
+
+      // AI actions
+      $$('.chip[data-ai]').forEach(b => {
+        b.addEventListener('click', () => runAiAction(b.dataset.ai, edContent, edAiResult, edAiText, edAiLabel));
+      });
+
+      // AI apply / dismiss
+      document.getElementById('ed-ai-apply')?.addEventListener('click', () => {
+        if (state.aiResult) {
+          edContent.value = state.aiResult;
+          updateWC();
+          edAiResult.classList.add('hide');
+        }
+      });
+      document.getElementById('ed-ai-dismiss')?.addEventListener('click', () => {
+        edAiResult.classList.add('hide');
+      });
+
+      // Mount toolbar
+      if (edTbMount && edContent) {
+        edTbMount.innerHTML = renderToolbarHTML();
+        if (state.toolbarCtrl) state.toolbarCtrl.destroy();
+        state.toolbarCtrl = mountToolbar(edTbMount, {
+          textarea: edContent,
+          voiceLang: 'en-IN',
+          enterToSend: false,
+          attachAccept: '.txt,.md,.json,.csv',
+          onAttach: async (file) => {
+            const text = await file.text().catch(() => '');
+            const cur = edContent.value;
+            edContent.value = cur + (cur ? '\n\n' : '') + text;
+            updateWC?.();
+            toast(`Attached: ${file.name}`, 'success');
+          },
+          onImprove:   () => runAiAction('improve',   edContent, edAiResult, edAiText, edAiLabel),
+          onTranslate: () => runAiAction('translate', edContent, edAiResult, edAiText, edAiLabel)
+        });
+      }
+
+      // Save
+      document.getElementById('ed-cancel')?.addEventListener('click', () => {
+        closeSheet();
+        state.editingId = null;
+      });
+
+      document.getElementById('ed-save')?.addEventListener('click', () => {
+        const title   = edTitle?.value.trim() || '';
+        const content = edContent?.value.trim() || '';
+        if (!content) { toast('Write something first'); return; }
+        const type = ($$('.chip[data-ntype]', edTypes || document).find(x => x.classList.contains('on'))?.dataset.ntype) || 'quick';
+        const tags = Array.from($$(`.chip[data-tag]`, edTags || document)).filter(x => x.classList.contains('on')).map(x => x.dataset.tag);
+        const now  = Date.now();
+        if (state.editingId) {
+          const idx = state.notes.findIndex(x => x.id === state.editingId);
+          if (idx !== -1) state.notes[idx] = { ...state.notes[idx], title, content, type, tags, updatedAt: now };
+        } else {
+          state.notes.unshift({ id: uid(), title, content, type, tags, createdAt: now, updatedAt: now });
+        }
+        saveNotes();
+        renderNotes();
+        closeSheet();
+        toast(state.editingId ? 'Note updated' : 'Note saved', 'success');
+        state.editingId = null;
+      });
+
+      // Delete
+      document.getElementById('ed-delete')?.addEventListener('click', () => {
+        if (!confirm('Delete this note permanently?')) return;
+        state.notes = state.notes.filter(x => x.id !== state.editingId);
+        saveNotes();
+        renderNotes();
+        closeSheet();
+        toast('Note deleted', 'success');
+        state.editingId = null;
+      });
+    }, 80);
+  }
+
+  /* ─── AI note actions ─── */
+  async function runAiAction(action, edContent, edAiResult, edAiText, edAiLabel) {
+    const raw = edContent?.value.trim();
+    if (!raw) { toast('Write something first'); return; }
+    if (!AI.hasAnyRoute()) { toast('Set an AI route in Settings', 'error'); return; }
+
+    // Strip color tags before sending to AI
+    const content = stripColorTags(raw);
+
+    const actionMap = {
+      improve:   { label: '✨ Improved English', sys: 'You are an expert English editor.', user: 'Improve the English grammar, clarity, and flow. Keep same meaning. Show only the improved version:\n\n' + content },
+      summarise: { label: '📝 Summary',          sys: 'You are a concise summariser.',     user: 'Summarise into 3-5 clear bullet points:\n\n' + content },
+      translate: { label: '🇮🇳 Hindi',           sys: 'You are a Hindi-English translator.', user: 'Translate into simple, natural Hindi:\n\n' + content },
+      explain:   { label: '💡 Explanation',      sys: 'You are a helpful teacher.',         user: 'Explain in very simple English for a beginner. Use short sentences:\n\n' + content }
+    };
+    const p = actionMap[action];
+    if (!p) return;
+
+    if (edAiLabel) edAiLabel.textContent = p.label;
+    if (edAiText)  edAiText.innerHTML = '<span class="dim">Thinking…</span>';
+    if (edAiResult) edAiResult.classList.remove('hide');
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: p.sys },
+        { role: 'user',   content: p.user }
+      ], { temperature: 0.5, maxTokens: 1500 });
+      state.aiResult = r.text;
+      if (edAiText) edAiText.innerHTML = renderMd(r.text);
+      toast('Done · ' + r.route, 'success');
+    } catch (e) {
+      if (edAiText) edAiText.textContent = 'Error: ' + (e.details?.[0] || e.message);
+      toast('AI failed', 'error');
+    }
+  }
+
+  /* ─── Download sheet ─── */
+  function openDownloadSheet() {
+    if (!state.notes.length) { toast('No notes to download'); return; }
+    const v = '1.0.0';
+    const d = new Date().toISOString().slice(0, 10);
+    openSheet(`
+      <div class="sheet-handle"></div>
+      <div class="sheet-inner">
+        <div class="kicker"><span>DOWNLOAD</span><span class="lime">${state.notes.length} NOTES</span></div>
+        <div class="sheet-title">Export notes</div>
+        <div class="col gap-12">
+          <button class="btn btn-primary" id="dl-all-txt">⬇ ALL NOTES · TXT</button>
+          <button class="btn" id="dl-quick-txt">⬇ QUICK NOTES · TXT</button>
+          <button class="btn" id="dl-daily-txt">⬇ DAILY JOURNAL · TXT</button>
+          <button class="btn" id="dl-study-txt">⬇ STUDY NOTES · TXT</button>
+          <div class="ticks" style="margin:4px 0;">${'<i></i>'.repeat(28)}</div>
+          <button class="btn" id="dl-all-json">⬇ ALL NOTES · JSON</button>
+          <button class="btn btn-rust" id="dl-cancel">CANCEL</button>
+        </div>
       </div>
     `);
     setTimeout(() => {
-      document.getElementById('nr-cancel')?.addEventListener('click', closeSheet);
-      document.getElementById('nr-go')?.addEventListener('click', () => { closeSheet(); go('settings'); });
+      document.getElementById('dl-all-txt')?.addEventListener('click',   () => doDownloadTxt('all'));
+      document.getElementById('dl-quick-txt')?.addEventListener('click', () => doDownloadTxt('quick'));
+      document.getElementById('dl-daily-txt')?.addEventListener('click', () => doDownloadTxt('daily'));
+      document.getElementById('dl-study-txt')?.addEventListener('click', () => doDownloadTxt('study'));
+      document.getElementById('dl-all-json')?.addEventListener('click',  () => doDownloadJson());
+      document.getElementById('dl-cancel')?.addEventListener('click', closeSheet);
     }, 50);
   }
 
-  /* ════════════════════════════════════════
-     TENSE EXERCISE
-     ════════════════════════════════════════ */
-  const elTGrid    = $('#tense-grid', root);
-  const elTGo      = $('#tense-go', root);
-  const elTToggle  = $('#tense-toggle-ans', root);
-  const elTDl      = $('#tense-download', root);
-  const elTQs      = $('#tense-questions', root);
-  const elTAs      = $('#tense-answers', root);
-  const elTQList   = $('#tense-q-list', root);
-  const elTAList   = $('#tense-a-list', root);
-  const elTQInfo   = $('#tense-q-info', root);
-  const elTenseSendOut = $('#tense-sendout', root);
-
-  elTGrid.innerHTML = (opts.tenses || []).map(t =>
-    `<button class="tense-btn ${t === state.selectedTense ? 'sel' : ''}" data-tense="${esc(t)}">${esc(t)}</button>`
-  ).join('');
-  $$('[data-tense]', elTGrid).forEach(b => {
-    b.addEventListener('click', () => {
-      state.selectedTense = b.dataset.tense;
-      SCOPE.set('selectedTense', state.selectedTense);
-      $$('[data-tense]', elTGrid).forEach(x => x.classList.toggle('sel', x.dataset.tense === state.selectedTense));
-      elTGo.disabled = false;
+  function doDownloadTxt(type) {
+    const labels = { all:'All Notes', quick:'Quick Notes', daily:'Daily Journal', study:'Study Notes' };
+    const notes = type === 'all' ? [...state.notes] : state.notes.filter(n => n.type === type);
+    if (!notes.length) { toast('No notes in this category'); return; }
+    notes.sort((a, b) => b.updatedAt - a.updatedAt);
+    const typeIcons = { quick:'⚡ QUICK NOTE', daily:'📓 DAILY JOURNAL', study:'📚 STUDY NOTE' };
+    let txt = `MY NOTES — Grammar.AI\n${'='.repeat(50)}\n`;
+    txt += `Filter: ${labels[type]}\n`;
+    txt += `Exported: ${new Date().toLocaleString('en-IN')}\n`;
+    txt += `Total: ${notes.length} note${notes.length !== 1 ? 's' : ''}\n`;
+    txt += `${'='.repeat(50)}\n\n`;
+    notes.forEach((n, i) => {
+      txt += `${i+1}. ${typeIcons[n.type] || 'NOTE'}\n`;
+      txt += `Date: ${fmtDate(n.updatedAt)}\n`;
+      if (n.title)  txt += `Title: ${n.title}\n`;
+      if (n.tags?.length) txt += `Tags: ${n.tags.join(', ')}\n`;
+      txt += `${'-'.repeat(30)}\n${n.content}\n\n${'='.repeat(50)}\n\n`;
     });
-  });
-
-  if (state.tenseData) renderTenseData(state.tenseData);
-
-  elTGo.addEventListener('click', genTenseExercise);
-  elTToggle.addEventListener('click', () => {
-    state.tenseShowAns = !state.tenseShowAns;
-    elTAs.classList.toggle('hide', !state.tenseShowAns);
-    elTToggle.textContent = state.tenseShowAns ? '🙈 HIDE ANSWERS' : '👁 ANSWERS';
-  });
-  elTDl.addEventListener('click', downloadTenseExercise);
-
-  // Tense CLEAR
-  $('#tense-clear', root)?.addEventListener('click', () => {
-    if (!confirm('Clear tense exercise?')) return;
-    state.selectedTense = ''; state.tenseData = null; state.tenseShowAns = false;
-    SCOPE.set('selectedTense', ''); SCOPE.set('tenseData', null);
-    $$('[data-tense]', elTGrid).forEach(x => x.classList.remove('sel'));
-    elTGo.disabled = true; elTToggle.disabled = true; elTDl.disabled = true;
-    elTQs.classList.add('hide'); elTAs.classList.add('hide');
-    if (elTenseSendOut) { elTenseSendOut.classList.add('hide'); elTenseSendOut.innerHTML = ''; }
-    toast('Cleared', 'success');
-  });
-
-  async function genTenseExercise() {
-    if (!state.selectedTense) { toast('Select a tense first'); return; }
-    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
-
-    elTGo.disabled = true;
-    elTGo.textContent = 'GENERATING…';
-
-    const isPrep = state.selectedTense.toLowerCase().includes('preposition');
-    const userPrompt = isPrep
-      ? `Generate 15 preposition exercises for: "${state.selectedTense}". Seed: ${Math.floor(Math.random()*100000)}. Return ONLY: {"tense":"${state.selectedTense}","questions":[{"no":1,"sentence":"She arrived ___ Monday morning.","hint":"in / on / at"}],"answers":[{"no":1,"answer":"on","explanation":"Use 'on' for specific days of the week."}]} with 15 items each. Use real daily-life sentences. Each hint must show 2-3 preposition choices.`
-      : `Generate 15 fill-in-the-blank sentences for: "${state.selectedTense}". Seed: ${Math.floor(Math.random()*100000)}. Return ONLY: {"tense":"${state.selectedTense}","questions":[{"no":1,"sentence":"She ___ (go) every day.","hint":"correct form"}],"answers":[{"no":1,"answer":"goes","explanation":"Third person singular needs -s."}]} with 15 items each. Unique daily-life sentences.`;
-
-    try {
-      const r = await AI.chat([
-        { role: 'system', content: prompts.exercise_system || 'Return ONLY valid JSON.' },
-        { role: 'user',   content: userPrompt }
-      ], { temperature: 0.7, maxTokens: 3000 });
-      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
-      state.tenseData = data;
-      SCOPE.set('tenseData', data);
-      renderTenseData(data);
-      toast('Done · ' + r.route, 'success');
-    } catch (e) {
-      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
-    } finally {
-      elTGo.disabled = false;
-      elTGo.textContent = '▸ GENERATE 15 Qs';
-    }
+    const vv = Storage.get('version', '1.0.0') || '1.0.0';
+    const d  = new Date().toISOString().slice(0, 10);
+    downloadFile(gFileName('NOTES', 'NO'), txt, 'text/plain');
+    closeSheet();
   }
 
-  function renderTenseData(d) {
-    elTQs.classList.remove('hide');
-    elTToggle.disabled = false;
-    elTDl.disabled = false;
-    elTQInfo.textContent = `${(d.questions || []).length} Qs`;
-    elTQList.textContent = (d.questions || []).map(q => `${q.no}. ${q.sentence}\n   (${q.hint})`).join('\n\n');
-    elTAList.textContent = (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
-    if (elTenseSendOut) {
-      elTenseSendOut.classList.remove('hide');
-      mountSendOut(elTenseSendOut, {
-        module: 'EXERCISE',
-        code: 'EX',
-        items: [
-          { key: 'questions', label: 'QUESTIONS',  getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}` },
-          { key: 'answers',   label: 'ANSWERS',    getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nANSWERS:\n\n${elTAList.textContent}` },
-          { key: 'both',      label: 'BOTH',       getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}\n\nANSWERS:\n\n${elTAList.textContent}`, default: true }
-        ]
-      });
-    }
+  function doDownloadJson() {
+    const notes = [...state.notes].sort((a, b) => b.updatedAt - a.updatedAt);
+    const vv = Storage.get('version', '1.0.0') || '1.0.0';
+    const d  = new Date().toISOString().slice(0, 10);
+    const dump = {
+      _meta: { app: 'Grammar.AI', scope: 'Notes', exportedAt: new Date().toISOString(), count: notes.length },
+      notes
+    };
+    downloadFile(gFileName('NOTES', 'NO', 'json'), JSON.stringify(dump, null, 2), 'application/json');
+    closeSheet();
   }
 
-  function downloadTenseExercise() {
-    if (!state.tenseData) return;
-    const d = state.tenseData;
-    let txt = `EXERCISE — ${(d.tense || '').toUpperCase()}\n${'='.repeat(50)}\n\nQUESTIONS:\n\n`;
-    txt += (d.questions || []).map(q => `${q.no}. ${q.sentence}\n   (${q.hint})`).join('\n\n');
-    txt += `\n\n${'-'.repeat(50)}\nANSWERS:\n\n`;
-    txt += (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
-    txt += `\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
-  }
-
-  /* ════════════════════════════════════════
-     FLASHCARDS
-     ════════════════════════════════════════ */
-  const elFTopic   = $('#flash-topic', root);
-  const elFGo      = $('#flash-go', root);
-  const elFArea    = $('#flash-area', root);
-  const elFCard    = $('#flash-card', root);
-  const elFQ       = $('#flash-q', root);
-  const elFBack    = $('#flash-back', root);
-  const elFA       = $('#flash-a', root);
-  const elFExp     = $('#flash-exp', root);
-  const elFCount   = $('#flash-counter', root);
-  const elFScore   = $('#flash-score', root);
-  const elFBar     = $('#flash-bar', root);
-  const elFMarkRow = $('#flash-mark-row', root);
-  const elFNo      = $('#flash-no', root);
-  const elFYes     = $('#flash-yes', root);
-  const elFPrev    = $('#flash-prev', root);
-  const elFShuffle = $('#flash-shuffle', root);
-  const elFNext    = $('#flash-next', root);
-  const elFDl      = $('#flash-download', root);
-  const elFSum     = $('#flash-summary', root);
-  const elFSumText = $('#flash-sum-text', root);
-  const elFRestart = $('#flash-restart', root);
-  const elFCats    = $('#flash-cats', root);
-
-  const flashCats = opts.flashCategories || {};
-
-  function populateFlashTopics() {
-    const cat = flashCats[state.flashCategory] || {};
-    const topics = cat.topics || [];
-    elFTopic.innerHTML = topics.map(t =>
-      `<option value="${esc(t)}" ${t === state.flashTopic ? 'selected' : ''}>${esc(t)}</option>`
-    ).join('');
-    // If saved topic not in new category, reset to first
-    if (topics.length && !topics.includes(state.flashTopic)) {
-      state.flashTopic = topics[0];
-      elFTopic.value = state.flashTopic;
-    }
-  }
-
-  // Wire category chips
-  $$('.chip[data-fcat]', elFCats).forEach(b => {
-    b.classList.toggle('on', b.dataset.fcat === state.flashCategory);
-    b.addEventListener('click', () => {
-      state.flashCategory = b.dataset.fcat;
-      SCOPE.set('flashCategory', state.flashCategory);
-      $$('.chip[data-fcat]', elFCats).forEach(x => x.classList.toggle('on', x.dataset.fcat === state.flashCategory));
-      populateFlashTopics();
-    });
-  });
-
-  populateFlashTopics();
-
-  if (state.flashCards.length > 0) {
-    elFArea.classList.remove('hide');
-    showFlash();
-  }
-
-  elFGo.addEventListener('click', genFlashcards);
-  $('#flash-clear', root)?.addEventListener('click', () => {
-    if (!confirm('Clear flashcards?')) return;
-    state.flashCards = []; state.flashIdx = 0; state.flashFlipped = false; state.flashKnown = 0;
-    SCOPE.set('flashCards', []); SCOPE.set('flashKnown', 0);
-    elFArea.classList.add('hide');
-    toast('Cleared', 'success');
-  });
-  elFCard.addEventListener('click', flipFlash);
-  elFNo.addEventListener('click', () => markFlash(false));
-  elFYes.addEventListener('click', () => markFlash(true));
-  elFPrev.addEventListener('click', () => { state.flashFlipped = false; state.flashIdx = (state.flashIdx - 1 + state.flashCards.length) % state.flashCards.length; showFlash(); });
-  elFNext.addEventListener('click', () => { state.flashFlipped = false; state.flashIdx = (state.flashIdx + 1) % state.flashCards.length; showFlash(); });
-  elFShuffle.addEventListener('click', () => {
-    for (let i = state.flashCards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [state.flashCards[i], state.flashCards[j]] = [state.flashCards[j], state.flashCards[i]];
-    }
-    state.flashIdx = 0; state.flashFlipped = false;
-    showFlash();
-    toast('Shuffled');
-  });
-  elFDl.addEventListener('click', downloadFlash);
-  elFRestart.addEventListener('click', () => {
-    state.flashIdx = 0;
-    state.flashKnown = 0;
-    state.flashFlipped = false;
-    SCOPE.set('flashKnown', 0);
-    elFSum.classList.add('hide');
-    showFlash();
-  });
-
-  async function genFlashcards() {
-    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
-    const topic = elFTopic.value;
-    state.flashTopic = topic;
-    SCOPE.set('flashTopic', topic);
-
-    elFGo.disabled = true;
-    elFGo.textContent = 'GENERATING…';
-    elFArea.classList.add('hide');
-
-    try {
-      const r = await AI.chat([
-        { role: 'system', content: prompts.flashcard_system || 'Return ONLY valid JSON.' },
-        { role: 'user',   content: `Create 10 flashcards for: "${topic}". Seed: ${Math.floor(Math.random()*99999)}. Return ONLY: {"topic":"${topic}","cards":[{"id":1,"question":"Question?","answer":"Answer","explanation":"English tip or example","explanation_hindi":"हिंदी में स्पष्टीकरण — आसान भाषा में"}]} with 10 items. All unique, educational, and practical.` }
-      ], { temperature: 0.7, maxTokens: 2500 });
-      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
-      state.flashCards = data.cards || [];
-      state.flashIdx = 0;
-      state.flashFlipped = false;
-      state.flashKnown = 0;
-      SCOPE.set('flashCards', state.flashCards);
-      SCOPE.set('flashKnown', 0);
-      elFArea.classList.remove('hide');
-      elFSum.classList.add('hide');
-      showFlash();
-      toast('Done · ' + r.route, 'success');
-    } catch (e) {
-      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
-    } finally {
-      elFGo.disabled = false;
-      elFGo.textContent = '▸ GENERATE';
-    }
-  }
-
-  function showFlash() {
-    if (!state.flashCards.length) return;
-    const c = state.flashCards[state.flashIdx];
-    elFQ.textContent = c.question || '';
-    elFA.textContent = c.answer || '';
-    let exp = '';
-    if (c.explanation) exp += c.explanation;
-    if (c.explanation_hindi) exp += (exp ? '\n\n🇮🇳 ' : '🇮🇳 ') + c.explanation_hindi;
-    elFExp.textContent = exp;
-    elFCount.textContent = `CARD ${state.flashIdx+1} / ${state.flashCards.length}`;
-    elFScore.textContent = `✓ ${state.flashKnown}`;
-    elFBar.style.width = ((state.flashIdx+1)/state.flashCards.length*100) + '%';
-    state.flashFlipped = false;
-    elFBack.classList.add('hide');
-    elFMarkRow.classList.add('hide');
-  }
-
-  function flipFlash() {
-    if (!state.flashCards.length) return;
-    state.flashFlipped = !state.flashFlipped;
-    elFBack.classList.toggle('hide', !state.flashFlipped);
-    elFMarkRow.classList.toggle('hide', !state.flashFlipped);
-  }
-
-  function markFlash(known) {
-    if (known) state.flashKnown++;
-    SCOPE.set('flashKnown', state.flashKnown);
-    if (state.flashIdx === state.flashCards.length - 1) {
-      // Round complete
-      const total = state.flashCards.length;
-      elFSumText.textContent = `${state.flashKnown} / ${total} known · ${Math.round(state.flashKnown/total*100)}% accuracy`;
-      elFSum.classList.remove('hide');
-    } else {
-      state.flashIdx++;
-      showFlash();
-    }
-  }
-
-  function downloadFlash() {
-    if (!state.flashCards.length) { toast('Generate cards first'); return; }
-    let txt = `FLASHCARDS — ${state.flashTopic.toUpperCase()}\n${'='.repeat(50)}\n\n`;
-    state.flashCards.forEach((c, i) => {
-      txt += `${i+1}. ${c.question}\n   ANS: ${c.answer}\n   ${c.explanation || ''}\n   ${c.explanation_hindi || ''}\n\n`;
-    });
-    txt += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
-  }
-
-  /* ════════════════════════════════════════
-     VOCAB
-     ════════════════════════════════════════ */
-  const elVLevel = $('#vocab-level', root);
-  const elVGo    = $('#vocab-go', root);
-  const elVList  = $('#vocab-list', root);
-  const elVDl    = $('#vocab-download', root);
-
-  elVLevel.innerHTML = (opts.vocabLevels || []).map(l =>
-    `<option value="${esc(l.key)}" ${l.key === state.vocabLevel ? 'selected' : ''}>${esc(l.label)}</option>`
-  ).join('');
-  if (state.vocabData) renderVocab(state.vocabData);
-
-  elVGo.addEventListener('click', genVocab);
-  $('#vocab-clear', root)?.addEventListener('click', () => {
-    if (!confirm('Clear vocabulary list?')) return;
-    state.vocabData = null; SCOPE.set('vocabData', null);
-    elVList.innerHTML = ''; elVDl.disabled = true;
-    toast('Cleared', 'success');
-  });
-  elVLevel.addEventListener('change', () => {
-    state.vocabLevel = elVLevel.value;
-    SCOPE.set('vocabLevel', state.vocabLevel);
-  });
-  elVDl.addEventListener('click', downloadVocab);
-
-  async function genVocab() {
-    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
-    const level = state.vocabLevel;
-    elVGo.disabled = true;
-    elVGo.textContent = 'GENERATING…';
-    elVList.innerHTML = '<div class="mono dim" style="padding:18px 0;text-align:center;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;">Generating…</div>';
-
-    try {
-      const r = await AI.chat([
-        { role: 'system', content: prompts.vocab_system || 'Return ONLY valid JSON.' },
-        { role: 'user',   content: `Generate 10 unique ${level}-level English words. Seed: ${Math.floor(Math.random()*99999)}. Return: {"level":"${level}","words":[{"word":"accomplish","type":"verb","meaning":"to complete successfully","example1":"She accomplished her goal.","example2":"Hard work helps accomplish great things."}]} with 10 items.` }
-      ], { temperature: 0.7, maxTokens: 2500 });
-      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
-      state.vocabData = data;
-      SCOPE.set('vocabData', data);
-      renderVocab(data);
-      toast('Done · ' + r.route, 'success');
-    } catch (e) {
-      elVList.innerHTML = `<div class="rust mono" style="padding:18px 0;text-align:center;font-size:11px;">Error: ${esc(e.message)}</div>`;
-    } finally {
-      elVGo.disabled = false;
-      elVGo.textContent = '▸ GENERATE';
-    }
-  }
-
-  function renderVocab(d) {
-    elVDl.disabled = false;
-    elVList.innerHTML = (d.words || []).map(w => `
-      <div class="frame subtle" style="padding:12px 14px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="row" style="align-items:baseline;gap:10px;">
-          <span class="serif" style="font-size:22px;">${esc(w.word)}</span>
-          <span class="mono lime" style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;">${esc(w.type || '')}</span>
-        </div>
-        <div class="mono mt-8" style="font-size:11px;color:var(--text);line-height:1.5;">${esc(w.meaning || '')}</div>
-        <div class="mono mt-8" style="font-size:11px;color:var(--muted);line-height:1.7;">
-          1. ${esc(w.example1 || '')}<br>
-          2. ${esc(w.example2 || '')}
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function downloadVocab() {
-    if (!state.vocabData) return;
-    const d = state.vocabData;
-    let t = `VOCABULARY — ${(d.level || '').toUpperCase()}\n${'='.repeat(40)}\n\n`;
-    (d.words || []).forEach((w, i) => {
-      t += `${i+1}. ${w.word} (${w.type})\n   ${w.meaning}\n   1. ${w.example1}\n   2. ${w.example2}\n\n`;
-    });
-    t += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
-  }
-
-  /* ════════════════════════════════════════
-     STORY
-     ════════════════════════════════════════ */
-  const elSTopic   = $('#story-topic', root);
-  const elSGo      = $('#story-go', root);
-  const elSDl      = $('#story-download', root);
-  const elSCopy    = $('#story-copy', root);
-  const elSCard    = $('#story-card', root);
-  const elSTitle   = $('#story-title', root);
-  const elSMeta    = $('#story-meta', root);
-  const elSBody    = $('#story-body', root);
-  const elSGrammar = $('#story-grammar', root);
-  const elSLesson  = $('#story-lesson', root);
-  const elStorySendOut = $('#story-sendout', root);
-
-  elSTopic.innerHTML = (opts.storyTopics || []).map(t =>
-    `<option value="${esc(t)}" ${t === state.storyTopic ? 'selected' : ''}>${esc(t)}</option>`
-  ).join('');
-  if (state.storyData) renderStory(state.storyData);
-
-  elSGo.addEventListener('click', genStory);
-  $('#story-clear', root)?.addEventListener('click', () => {
-    if (!confirm('Clear story?')) return;
-    state.storyData = null; SCOPE.set('storyData', null);
-    elSCard.classList.add('hide'); elSDl.disabled = true; elSCopy.disabled = true;
-    if (elStorySendOut) { elStorySendOut.classList.add('hide'); elStorySendOut.innerHTML = ''; }
-    toast('Cleared', 'success');
-  });
-  elSTopic.addEventListener('change', () => {
-    state.storyTopic = elSTopic.value;
-    SCOPE.set('storyTopic', state.storyTopic);
-  });
-  elSDl.addEventListener('click', downloadStory);
-  elSCopy.addEventListener('click', () => {
-    if (!state.storyData) return;
-    const d = state.storyData;
-    copyToClipboard(`${d.title}\n\n${d.story}\n\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}`);
-  });
-
-  async function genStory() {
-    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
-    const topic = state.storyTopic;
-    elSGo.disabled = true;
-    elSGo.textContent = 'GENERATING…';
-    elSCard.classList.add('hide');
-
-    try {
-      const r = await AI.chat([
-        { role: 'system', content: prompts.story_system || 'Return ONLY valid JSON.' },
-        { role: 'user',   content: `Write a short story on: "${topic}". Seed: ${Math.floor(Math.random()*99999)}. Return: {"title":"Story Title","topic":"${topic}","level":"intermediate","readingTime":"3 min","story":"200-280 word story. Natural English, relatable to Indian readers, include dialogue.","grammarFocus":"Grammar demonstrated.","lesson":"Key lesson 1-2 sentences."}` }
-      ], { temperature: 0.8, maxTokens: 2000 });
-      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
-      state.storyData = data;
-      SCOPE.set('storyData', data);
-      renderStory(data);
-      toast('Done · ' + r.route, 'success');
-    } catch (e) {
-      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
-    } finally {
-      elSGo.disabled = false;
-      elSGo.textContent = '▸ NEW STORY';
-    }
-  }
-
-  function renderStory(d) {
-    elSCard.classList.remove('hide');
-    elSDl.disabled = false;
-    elSCopy.disabled = false;
-    elSTitle.textContent = d.title || '';
-    elSMeta.textContent = `${d.topic || ''} · ${d.level || ''} · ${d.readingTime || ''}`;
-    elSBody.innerHTML = renderMd(d.story || '');
-    elSGrammar.innerHTML = renderMd(d.grammarFocus || '');
-    elSLesson.innerHTML = renderMd(d.lesson || '');
-    if (elStorySendOut) {
-      elStorySendOut.classList.remove('hide');
-      mountSendOut(elStorySendOut, {
-        module: 'EXERCISE',
-        code: 'EX',
-        items: [
-          { key: 'story',   label: 'STORY',          getContent: () => `${d.title}\n\n${d.story}` },
-          { key: 'grammar', label: 'GRAMMAR',         getContent: () => `GRAMMAR FOCUS:\n${d.grammarFocus}` },
-          { key: 'lesson',  label: 'LESSON',          getContent: () => `LESSON:\n${d.lesson}` },
-          { key: 'all',     label: 'ALL',             getContent: () => `${d.title}\n\n${d.story}\n\nGRAMMAR FOCUS:\n${d.grammarFocus}\n\nLESSON:\n${d.lesson}`, default: true }
-        ]
-      });
-    }
-  }
-
-  function downloadStory() {
-    if (!state.storyData) return;
-    const d = state.storyData;
-    const t = `${d.title}\n${'='.repeat((d.title || '').length)}\n${d.topic} | ${d.readingTime}\n\n${d.story}\n\n${'-'.repeat(30)}\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
-    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
-  }
-
-  /* ─── Status ─── */
-  function refreshStatus() {
-    if (!elStatus) return;
-    if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
-    else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
-  }
-
-  mountModuleBackup($('#ex-module-backup', root), {
-    moduleId: 'exercise', moduleCode: 'EX', scope: SCOPE
+  // Notes module backup (visible in unlocked main view)
+  mountModuleBackup($('#notes-module-backup', root), {
+    moduleId: 'notes', moduleCode: 'NO', scope: SCOPE
   });
 
   return {
-    onShow() { refreshStatus(); }
+    onShow() {
+      if (state.unlocked) { renderNotes(); }
+    },
+    onHide() {
+      if (state.unlocked) { lock(); }
+    },
+    destroy() {
+      document.removeEventListener('keydown', gateKeyHandler);
+      if (state.toolbarCtrl) state.toolbarCtrl.destroy();
+    }
   };
 }

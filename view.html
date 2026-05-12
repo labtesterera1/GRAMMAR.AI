@@ -1,159 +1,115 @@
-<div class="page-inner">
+<!-- Notes module — password gate shown/hidden by controller -->
+
+<!-- ─── PASSWORD GATE ─── -->
+<div id="notes-gate" class="page-inner">
   <div class="kicker">
-    <span data-bind="moduleNum">MOD 05 / EXERCISE</span>
-    <span class="lime" data-bind="status">● READY</span>
+    <span>MOD 06 / NOTES</span>
+    <span class="rust" id="gate-status">● LOCKED</span>
   </div>
-  <div class="headline">Exercise</div>
+  <div class="headline">Notes</div>
   <div class="subline">
-    <span>TENSE · FLASH · VOCAB · STORY</span>
-    <span data-bind="subInfo">SELECT</span>
+    <span>WRITE · VAULT · EXPORT</span>
+    <span id="gate-sub">ENTER PASSWORD</span>
   </div>
   <div class="ticks">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    <i></i><i></i><i></i><i></i><i></i><i></i><i</i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
-  <!-- Sub-tabs -->
-  <div class="lang-chips" id="ex-tabs"></div>
+  <div class="frame subtle notes-gate-box mt-12">
+    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <div class="mono" style="font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;" id="gate-label">ENTER 6-DIGIT PASSWORD</div>
 
-  <!-- ─── TENSE SUB-TAB ─── -->
-  <div class="ex-sub" data-sub="tense">
-    <div class="s-ttl"><span>SELECT TENSE</span><span class="num">15 OPTIONS</span></div>
-    <div class="tense-grid" id="tense-grid"></div>
-    <div class="row gap-12 mt-12">
-      <button class="btn btn-primary flex-1" id="tense-go" disabled>▸ GENERATE 15 Qs</button>
-      <button class="btn" id="tense-toggle-ans" disabled>👁 ANSWERS</button>
-      <button class="btn" id="tense-download" disabled>⬇</button>
-      <button class="btn btn-rust" id="tense-clear">✕</button>
+    <!-- PIN dots display -->
+    <div class="pin-dots" id="pin-dots">
+      <span class="pin-dot" data-i="0"></span>
+      <span class="pin-dot" data-i="1"></span>
+      <span class="pin-dot" data-i="2"></span>
+      <span class="pin-dot" data-i="3"></span>
+      <span class="pin-dot" data-i="4"></span>
+      <span class="pin-dot" data-i="5"></span>
     </div>
 
-    <div id="tense-questions" class="hide">
-      <div class="s-ttl"><span>QUESTIONS</span><span id="tense-q-info" class="num">15</span></div>
-      <div class="frame subtle">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="output-box" id="tense-q-list"></div>
-      </div>
+    <!-- PIN error message -->
+    <div class="mono rust" id="pin-error" style="font-size:11px;letter-spacing:0.06em;margin-top:10px;min-height:18px;text-align:center;"></div>
+
+    <!-- Numpad -->
+    <div class="numpad" id="numpad">
+      <button class="num-btn" data-n="1">1</button>
+      <button class="num-btn" data-n="2">2</button>
+      <button class="num-btn" data-n="3">3</button>
+      <button class="num-btn" data-n="4">4</button>
+      <button class="num-btn" data-n="5">5</button>
+      <button class="num-btn" data-n="6">6</button>
+      <button class="num-btn" data-n="7">7</button>
+      <button class="num-btn" data-n="8">8</button>
+      <button class="num-btn" data-n="9">9</button>
+      <button class="num-btn num-del" id="pin-clear">CLR</button>
+      <button class="num-btn" data-n="0">0</button>
+      <button class="num-btn num-ok" id="pin-ok">OK</button>
     </div>
 
-    <div id="tense-answers" class="hide">
-      <div class="s-ttl"><span>ANSWERS</span><span class="num">EXPLAINED</span></div>
-      <div class="frame subtle">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="output-box" id="tense-a-list"></div>
-      </div>
-    </div>
-    <div id="tense-sendout" class="hide"></div>
-  </div>
-
-  <!-- ─── FLASHCARDS SUB-TAB ─── -->
-  <div class="ex-sub hide" data-sub="flash">
-    <div class="s-ttl"><span>FLASHCARDS</span><span class="num">10 PER ROUND</span></div>
-
-    <!-- Category chips -->
-    <div class="lang-chips" id="flash-cats">
-      <button class="chip on" data-fcat="tenses">TENSES</button>
-      <button class="chip"    data-fcat="grammar">GRAMMAR</button>
-      <button class="chip"    data-fcat="vocabulary">VOCABULARY</button>
-    </div>
-
-    <!-- Topic + actions -->
-    <div class="row gap-12 mt-12">
-      <select class="select" id="flash-topic" style="flex:1;"></select>
-      <button class="btn btn-primary" id="flash-go">▸ GENERATE</button>
-      <button class="btn btn-rust" id="flash-clear">✕ CLEAR</button>
-    </div>
-
-    <div id="flash-area" class="hide mt-12">
-      <div class="row between mt-8" style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">
-        <span id="flash-counter">CARD 1 / 10</span>
-        <span class="lime" id="flash-score">✓ 0</span>
-      </div>
-      <div class="flash-progress mt-8"><div class="flash-bar" id="flash-bar"></div></div>
-
-      <div class="frame subtle flash-card mt-12" id="flash-card">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="flash-hint mono">TAP TO FLIP</div>
-        <div class="flash-q serif" id="flash-q"></div>
-        <div class="flash-back hide" id="flash-back">
-          <div class="flash-hint mono">ANSWER</div>
-          <div class="flash-a serif" id="flash-a"></div>
-          <div class="flash-exp" id="flash-exp"></div>
-        </div>
-      </div>
-
-      <div class="row gap-12 mt-12 hide" id="flash-mark-row">
-        <button class="btn btn-rust flex-1" id="flash-no">✗ DON'T KNOW</button>
-        <button class="btn btn-primary flex-1" id="flash-yes">✓ KNOW IT</button>
-      </div>
-
-      <div class="row gap-12 mt-12">
-        <button class="btn flex-1" id="flash-prev">← PREV</button>
-        <button class="btn" id="flash-shuffle">🔀</button>
-        <button class="btn flex-1" id="flash-next">NEXT →</button>
-      </div>
-
-      <div class="row gap-12 mt-12">
-        <button class="btn flex-1" id="flash-download">⬇ DOWNLOAD</button>
-      </div>
-
-      <div id="flash-summary" class="frame subtle mt-12 hide" style="padding:16px;text-align:center;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="serif" style="font-size:24px;">Round complete</div>
-        <div class="mono mt-8" id="flash-sum-text"></div>
-        <button class="btn btn-primary mt-12" id="flash-restart">↺ RESTART ROUND</button>
-      </div>
+    <!-- Reset option (only shown if password is set) -->
+    <div id="pin-reset-row" style="text-align:center;margin-top:14px;" class="hide">
+      <button class="btn-ghost" id="pin-reset" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);">↺ RESET PASSWORD</button>
     </div>
   </div>
-
-  <!-- ─── VOCAB SUB-TAB ─── -->
-  <div class="ex-sub hide" data-sub="vocab">
-    <div class="s-ttl"><span>VOCABULARY</span><span class="num">10 WORDS</span></div>
-    <div class="row gap-12">
-      <select class="select" id="vocab-level" style="flex:1;"></select>
-      <button class="btn btn-primary" id="vocab-go">▸ GENERATE</button>
-      <button class="btn btn-rust" id="vocab-clear">✕ CLEAR</button>
-    </div>
-    <div class="row gap-12 mt-8">
-      <button class="btn flex-1" id="vocab-download" disabled>⬇ DOWNLOAD</button>
-    </div>
-    <div id="vocab-list" class="col mt-12"></div>
-  </div>
-
-  <!-- ─── STORY SUB-TAB ─── -->
-  <div class="ex-sub hide" data-sub="story">
-    <div class="s-ttl"><span>STORY GENERATOR</span><span class="num">200-280 WORDS</span></div>
-    <div class="row gap-12">
-      <select class="select" id="story-topic" style="flex:1;"></select>
-      <button class="btn btn-primary" id="story-go">▸ NEW STORY</button>
-      <button class="btn btn-rust" id="story-clear">✕ CLEAR</button>
-    </div>
-    <div class="row gap-12 mt-8">
-      <button class="btn flex-1" id="story-download" disabled>⬇ DOWNLOAD</button>
-      <button class="btn flex-1" id="story-copy" disabled>⧉ COPY</button>
-    </div>
-
-    <div id="story-card" class="hide mt-12">
-      <div class="frame subtle" style="padding:14px 16px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="serif" id="story-title" style="font-size:24px;line-height:1.2;"></div>
-        <div class="mono mt-8" id="story-meta" style="font-size:10px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;"></div>
-        <div class="ticks mt-8"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="output-box" id="story-body" style="border:none;padding:0;background:transparent;"></div>
-      </div>
-      <div class="frame subtle mt-12" style="padding:14px 16px;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono lime" style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;">GRAMMAR FOCUS</div>
-        <div class="output-box" id="story-grammar" style="border:none;padding:6px 0 0;background:transparent;"></div>
-        <div class="mono lime mt-8" style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;">LESSON</div>
-        <div class="output-box" id="story-lesson" style="border:none;padding:6px 0 0;background:transparent;"></div>
-      </div>
-      <div id="story-sendout" class="hide"></div>
-    </div>
-  </div>
-
-  <div id="ex-module-backup" class="mt-4 page-inner" style="padding-top:0;"></div>
-
 </div>
+
+<!-- ─── NOTES MAIN VIEW (shown after unlock) ─── -->
+<div id="notes-main" class="hide">
+  <div class="page-inner">
+    <div class="kicker">
+      <span>MOD 06 / NOTES</span>
+      <span class="lime">● UNLOCKED</span>
+    </div>
+    <div class="headline">Notes</div>
+    <div class="subline">
+      <span id="notes-stats-line">0 NOTES</span>
+      <span>WRITE · VAULT · EXPORT</span>
+    </div>
+    <div class="ticks">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+
+    <!-- Type filter chips + actions -->
+    <div class="lang-chips">
+      <button class="chip on" data-filter="all">ALL</button>
+      <button class="chip" data-filter="quick">⚡</button>
+      <button class="chip" data-filter="daily">📓</button>
+      <button class="chip" data-filter="study">📚</button>
+      <span class="flex-1"></span>
+      <button class="chip" id="notes-download-btn" title="Download">⬇</button>
+      <button class="chip" id="notes-lock-btn" title="Lock notes">🔒</button>
+    </div>
+
+    <!-- Search -->
+    <div class="row gap-12 mt-12">
+      <input class="input flex-1" id="notes-search" placeholder="Search notes…" autocomplete="off" />
+      <button class="btn btn-primary" id="notes-new-btn">+ NEW</button>
+    </div>
+
+    <!-- Notes list -->
+    <div id="notes-list" class="col mt-12"></div>
+
+    <!-- Empty state -->
+    <div id="notes-empty" class="hide">
+      <div class="frame subtle" style="padding:32px 20px;text-align:center;margin-top:16px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div style="font-size:40px;margin-bottom:12px;">📝</div>
+        <div class="serif" style="font-size:22px;margin-bottom:8px;">No notes yet</div>
+        <div class="mono" style="font-size:11px;color:var(--muted);">Tap + NEW to create your first note</div>
+      </div>
+    </div>
+    <div id="notes-module-backup" class="mt-4"></div>
+  </div>
+</div>
+
+<!-- ─── NOTE EDITOR SHEET (injected by controller) ─── -->
