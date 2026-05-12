@@ -1,163 +1,74 @@
 /* ────────────────────────────────────────────────────────────────
-   TRANSLATOR MODULE · controller
+   EXERCISE MODULE · controller
+   Sub-tabs: tense / flash / vocab / story
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, timeAgo, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountModuleBackup } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
-import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
 
-const SCOPE = Storage.scope('translator');
+const SCOPE = Storage.scope('exercise');
 
 export default async function init({ root, module }) {
 
   let manifest = { options: {} };
-  try { manifest = await fetch('modules/translator/manifest.json').then(r => r.json()); } catch {}
+  try { manifest = await fetch('modules/exercise/manifest.json').then(r => r.json()); } catch {}
   const opts = manifest.options || {};
-  const directions = opts.directions || [];
 
   let prompts = {};
   try { prompts = await fetch('config/prompts.json').then(r => r.json()); } catch {}
 
   const state = {
-    direction: SCOPE.get('direction', directions[0]?.key || 'en2hi'),
-    modeByDir: SCOPE.get('modeByDir', {}),
-    input: SCOPE.get('input', ''),
-    output: SCOPE.get('output', ''),
-    history: SCOPE.get('history', [])
+    tab: SCOPE.get('tab', opts.defaultTab || 'tense'),
+
+    // tense
+    selectedTense: SCOPE.get('selectedTense', ''),
+    tenseData: SCOPE.get('tenseData', null),
+    tenseShowAns: false,
+
+    // flash
+    flashCards: SCOPE.get('flashCards', []),
+    flashTopic: SCOPE.get('flashTopic', ''),
+    flashCategory: SCOPE.get('flashCategory', 'tenses'),
+    flashIdx: 0,
+    flashFlipped: false,
+    flashKnown: SCOPE.get('flashKnown', 0),
+
+    // vocab
+    vocabData: SCOPE.get('vocabData', null),
+    vocabLevel: SCOPE.get('vocabLevel', 'intermediate'),
+
+    // story
+    storyData: SCOPE.get('storyData', null),
+    storyTopic: SCOPE.get('storyTopic', 'daily life')
   };
 
-  const elDir     = $('#dir-chips', root);
-  const elMode    = $('#tr-mode', root);
-  const elInput   = $('#tr-input', root);
-  const elOutput  = $('#tr-output', root);
-  const elGo      = $('#tr-go', root);
-  const elClear   = $('#tr-clear', root);
-  const elCopy    = $('#tr-copy', root);
-  const elDl      = $('#tr-download', root);
-  const elHist    = $('#tr-history', root);
-  const elSpeak   = $('#tr-speak', root);
-  const elColor   = $('#tr-color', root);
-  const elSendOut = $('#tr-sendout', root);
-  const elTbMount = $('#toolbar-mount', root);
-
-  // Wire output color picker
-  mountOutputColorPicker(elColor, elOutput);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
-  const elHL      = root.querySelector('[data-bind="historyLine"]');
-
-  function showSendOut() {
-    if (!state.output || !elSendOut) return;
-    elSendOut.classList.remove('hide');
-    mountSendOut(elSendOut, {
-      module: 'TRANSLATOR',
-      code: 'TR',
-      items: [
-        { key: 'input',  label: 'INPUT',  getContent: () => state.input },
-        { key: 'output', label: 'OUTPUT', getContent: () => state.output, default: true }
-      ]
-    });
-  }
-
+  const elSubInfo = root.querySelector('[data-bind="subInfo"]');
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
-  // Direction chips
-  elDir.innerHTML = directions.map(d =>
-    `<button class="chip ${d.key === state.direction ? 'on' : ''}" data-dir="${esc(d.key)}">${esc(d.label)}</button>`
+  /* ─── Sub-tabs ─── */
+  const elTabs = $('#ex-tabs', root);
+  elTabs.innerHTML = (opts.subTabs || []).map(t =>
+    `<button class="chip ${t.key === state.tab ? 'on' : ''}" data-tab="${esc(t.key)}">${esc(t.label)}</button>`
   ).join('');
-  $$('.chip[data-dir]', elDir).forEach(b => {
+  $$('.chip[data-tab]', elTabs).forEach(b => {
     b.addEventListener('click', () => {
-      state.direction = b.dataset.dir;
-      SCOPE.set('direction', state.direction);
-      $$('.chip[data-dir]', elDir).forEach(x => x.classList.toggle('on', x.dataset.dir === state.direction));
-      paintModes();
+      state.tab = b.dataset.tab;
+      SCOPE.set('tab', state.tab);
+      paintTab();
     });
   });
 
-  paintModes();
-  elInput.value = state.input;
-  if (state.output) {
-    elOutput.innerHTML = renderMd(state.output);
-    elOutput.classList.remove('placeholder');
-    elColor?.classList.remove('hide');
-    showSendOut();
+  function paintTab() {
+    $$('.chip[data-tab]', elTabs).forEach(x => x.classList.toggle('on', x.dataset.tab === state.tab));
+    $$('.ex-sub', root).forEach(s => s.classList.toggle('hide', s.dataset.sub !== state.tab));
+    if (elSubInfo) elSubInfo.textContent = state.tab.toUpperCase();
   }
+  paintTab();
   refreshStatus();
-  refreshHist();
-
-  elTbMount.innerHTML = renderToolbarHTML();
-  const tb = mountToolbar(elTbMount, {
-    textarea: elInput,
-    voiceLang: state.direction === 'hi2en' ? 'hi-IN' : 'en-IN',
-    enterToSend: false,
-    attachAccept: '.txt,.md',
-    onAttach: async (file) => {
-      const text = await file.text().catch(() => '');
-      elInput.value = (elInput.value ? elInput.value + '\n\n' : '') + text;
-      state.input = elInput.value;
-      SCOPE.set('input', state.input);
-      toast(`Attached: ${file.name}`, 'success');
-    },
-    onImprove: () => quickAction('quick_improve', 'Improving…'),
-    onTranslate: () => translate(),
-    onSend: () => translate()
-  });
-
-  elInput.addEventListener('input', () => { state.input = elInput.value; SCOPE.set('input', state.input); });
-  elMode.addEventListener('change', () => {
-    state.modeByDir[state.direction] = elMode.value;
-    SCOPE.set('modeByDir', state.modeByDir);
-  });
-
-  elGo.addEventListener('click', translate);
-  elClear.addEventListener('click', () => {
-    if (!confirm('Clear input and output?')) return;
-    elInput.value = '';
-    elOutput.textContent = 'Translation will appear here…';
-    elOutput.classList.add('placeholder');
-    state.input = ''; state.output = '';
-    SCOPE.set('input', ''); SCOPE.set('output', '');
-    if (elSendOut) { elSendOut.classList.add('hide'); elSendOut.innerHTML = ''; }
-  });
-
-  // SPEAK
-  if (elSpeak) elSpeak.addEventListener('click', () => {
-    if (!state.output) { toast('Nothing to speak yet'); return; }
-    if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(state.output);
-    u.lang = state.direction === 'en2hi' ? 'hi-IN' : 'en-IN';
-    u.rate = 0.92;
-    speechSynthesis.speak(u);
-    toast('Speaking…');
-  });
-
-  elCopy.addEventListener('click', () => {
-    const text = elOutput.innerText || state.output || '';
-    if (!text) { toast('Nothing to copy yet'); return; }
-    copyToClipboard(text);
-  });
-  elDl.addEventListener('click', () => {
-    const text = elOutput.innerText || state.output || '';
-    if (!text) { toast('Nothing to download yet'); return; }
-    downloadFile(gFileName('TRANSLATOR', 'TR'), text, 'text/plain');
-  });
-
-  elHist.addEventListener('click', () => {
-    if (state.history.length === 0) { toast('No history yet'); return; }
-    openHistorySheet();
-  });
-
-  function paintModes() {
-    const dir = directions.find(d => d.key === state.direction);
-    if (!dir) return;
-    const cur = state.modeByDir[state.direction] || dir.default;
-    elMode.innerHTML = (dir.modes || []).map(m =>
-      `<option value="${esc(m.key)}" ${m.key === cur ? 'selected' : ''}>${esc(m.label)}</option>`
-    ).join('');
-  }
 
   function showNoRouteHelp() {
     openSheet(`
@@ -178,147 +89,476 @@ export default async function init({ root, module }) {
     }, 50);
   }
 
-  async function translate() {
-    const raw = elInput.value.trim();
-    if (!raw) { toast('Type something to translate'); return; }
+  /* ════════════════════════════════════════
+     TENSE EXERCISE
+     ════════════════════════════════════════ */
+  const elTGrid    = $('#tense-grid', root);
+  const elTGo      = $('#tense-go', root);
+  const elTToggle  = $('#tense-toggle-ans', root);
+  const elTDl      = $('#tense-download', root);
+  const elTQs      = $('#tense-questions', root);
+  const elTAs      = $('#tense-answers', root);
+  const elTQList   = $('#tense-q-list', root);
+  const elTAList   = $('#tense-a-list', root);
+  const elTQInfo   = $('#tense-q-info', root);
+  const elTenseSendOut = $('#tense-sendout', root);
+
+  elTGrid.innerHTML = (opts.tenses || []).map(t =>
+    `<button class="tense-btn ${t === state.selectedTense ? 'sel' : ''}" data-tense="${esc(t)}">${esc(t)}</button>`
+  ).join('');
+  $$('[data-tense]', elTGrid).forEach(b => {
+    b.addEventListener('click', () => {
+      state.selectedTense = b.dataset.tense;
+      SCOPE.set('selectedTense', state.selectedTense);
+      $$('[data-tense]', elTGrid).forEach(x => x.classList.toggle('sel', x.dataset.tense === state.selectedTense));
+      elTGo.disabled = false;
+    });
+  });
+
+  if (state.tenseData) renderTenseData(state.tenseData);
+
+  elTGo.addEventListener('click', genTenseExercise);
+  elTToggle.addEventListener('click', () => {
+    state.tenseShowAns = !state.tenseShowAns;
+    elTAs.classList.toggle('hide', !state.tenseShowAns);
+    elTToggle.textContent = state.tenseShowAns ? '🙈 HIDE ANSWERS' : '👁 ANSWERS';
+  });
+  elTDl.addEventListener('click', downloadTenseExercise);
+
+  // Tense CLEAR
+  $('#tense-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear tense exercise?')) return;
+    state.selectedTense = ''; state.tenseData = null; state.tenseShowAns = false;
+    SCOPE.set('selectedTense', ''); SCOPE.set('tenseData', null);
+    $$('[data-tense]', elTGrid).forEach(x => x.classList.remove('sel'));
+    elTGo.disabled = true; elTToggle.disabled = true; elTDl.disabled = true;
+    elTQs.classList.add('hide'); elTAs.classList.add('hide');
+    if (elTenseSendOut) { elTenseSendOut.classList.add('hide'); elTenseSendOut.innerHTML = ''; }
+    toast('Cleared', 'success');
+  });
+
+  async function genTenseExercise() {
+    if (!state.selectedTense) { toast('Select a tense first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
 
-    const text = stripColorTags(raw);
+    elTGo.disabled = true;
+    elTGo.textContent = 'GENERATING…';
 
-    const dir = directions.find(d => d.key === state.direction);
-    const mode = elMode.value || dir.default;
-    const sys = state.direction === 'en2hi' ? prompts.translator_en_system : prompts.translator_hi_system;
-    const modes = state.direction === 'en2hi' ? prompts.translator_en_modes : prompts.translator_hi_modes;
-    const modeText = modes?.[mode] || '';
-
-    elGo.disabled = true;
-    elGo.textContent = 'TRANSLATING…';
-    elOutput.classList.remove('placeholder');
-    elOutput.textContent = 'Working…';
+    const isPrep = state.selectedTense.toLowerCase().includes('preposition');
+    const userPrompt = isPrep
+      ? `Generate 15 preposition exercises for: "${state.selectedTense}". Seed: ${Math.floor(Math.random()*100000)}. Return ONLY: {"tense":"${state.selectedTense}","questions":[{"no":1,"sentence":"She arrived ___ Monday morning.","hint":"in / on / at"}],"answers":[{"no":1,"answer":"on","explanation":"Use 'on' for specific days of the week."}]} with 15 items each. Use real daily-life sentences. Each hint must show 2-3 preposition choices.`
+      : `Generate 15 fill-in-the-blank sentences for: "${state.selectedTense}". Seed: ${Math.floor(Math.random()*100000)}. Return ONLY: {"tense":"${state.selectedTense}","questions":[{"no":1,"sentence":"She ___ (go) every day.","hint":"correct form"}],"answers":[{"no":1,"answer":"goes","explanation":"Third person singular needs -s."}]} with 15 items each. Unique daily-life sentences.`;
 
     try {
       const r = await AI.chat([
-        { role: 'system', content: (sys || '') + modeText },
-        { role: 'user',   content: 'Translate:\n\n' + text }
-      ], { temperature: 0.4, maxTokens: 1500 });
-      elOutput.innerHTML = renderMd(r.text);
-      state.output = r.text;
-      SCOPE.set('output', state.output);
-      elColor?.classList.remove('hide');
-      showSendOut();
-
-      // Push to history
-      state.history.unshift({
-        ts: Date.now(),
-        direction: state.direction,
-        mode,
-        input: text,
-        output: r.text
-      });
-      const max = opts.historyMax || 20;
-      if (state.history.length > max) state.history = state.history.slice(0, max);
-      SCOPE.set('history', state.history);
-      refreshHist();
-
-      toast('Done · ' + r.route, 'success');
-    } catch (e) {
-      elOutput.textContent = 'Error: ' + (e.details?.[0] || e.message);
-      toast('Failed', 'error');
-    } finally {
-      elGo.disabled = false;
-      elGo.textContent = '▸ TRANSLATE';
-    }
-  }
-
-  async function quickAction(promptKey, busyMsg) {
-    const raw = elInput.value.trim();
-    if (!raw) { toast('Type something first'); return; }
-    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
-    const text = stripColorTags(raw);
-    toast(busyMsg);
-    try {
-      const r = await AI.chat([
-        { role: 'system', content: prompts[promptKey] || '' },
-        { role: 'user',   content: text }
-      ], { temperature: 0.3, maxTokens: 700 });
-      elInput.value = r.text;
-      state.input = r.text;
-      SCOPE.set('input', state.input);
+        { role: 'system', content: prompts.exercise_system || 'Return ONLY valid JSON.' },
+        { role: 'user',   content: userPrompt }
+      ], { temperature: 0.7, maxTokens: 3000 });
+      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
+      state.tenseData = data;
+      SCOPE.set('tenseData', data);
+      renderTenseData(data);
       toast('Done · ' + r.route, 'success');
     } catch (e) {
       toast('Failed: ' + (e.details?.[0] || e.message), 'error');
+    } finally {
+      elTGo.disabled = false;
+      elTGo.textContent = '▸ GENERATE 15 Qs';
     }
   }
 
-  function openHistorySheet() {
-    openSheet(`
-      <div class="kicker"><span>HISTORY</span><span class="lime">${state.history.length}/${opts.historyMax || 20}</span></div>
-      <div class="sheet-title">Translation history</div>
-      <div class="col" style="gap:8px;max-height:50vh;overflow-y:auto;">
-        ${state.history.map((h, i) => `
-          <div class="frame subtle" style="padding:10px 12px;">
-            <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-            <div class="row between mono" style="font-size:9px;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">
-              <span>${esc(h.direction)} · ${esc(h.mode)}</span>
-              <span>${esc(timeAgo(h.ts))}</span>
-            </div>
-            <div class="mono" style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:4px;">${esc(h.input).slice(0,140)}${h.input.length>140?'…':''}</div>
-            <div class="mono lime" style="font-size:11px;line-height:1.5;">${esc(h.output).slice(0,140)}${h.output.length>140?'…':''}</div>
-            <button class="btn-ghost mt-8" data-restore="${i}" style="font-size:9px;letter-spacing:0.16em;">↺ RESTORE</button>
-          </div>
-        `).join('')}
-      </div>
-      <div class="row gap-12 mt-12">
-        <button class="btn btn-rust flex-1" id="hist-clear">CLEAR ALL</button>
-        <button class="btn btn-primary flex-1" id="hist-close">CLOSE</button>
-      </div>
-    `);
-    setTimeout(() => {
-      $$('[data-restore]').forEach(b => b.addEventListener('click', () => {
-        const h = state.history[Number(b.dataset.restore)];
-        if (!h) return;
-        state.direction = h.direction;
-        SCOPE.set('direction', state.direction);
-        $$('.chip[data-dir]', elDir).forEach(x => x.classList.toggle('on', x.dataset.dir === state.direction));
-        paintModes();
-        elMode.value = h.mode;
-        elInput.value = h.input;
-        elOutput.innerHTML = renderMd(h.output);
-        elOutput.classList.remove('placeholder');
-        state.input = h.input;
-        state.output = h.output;
-        SCOPE.set('input', h.input);
-        SCOPE.set('output', h.output);
-        closeSheet();
-        toast('Restored', 'success');
-      }));
-      document.getElementById('hist-clear')?.addEventListener('click', () => {
-        if (!confirm('Clear all translation history?')) return;
-        state.history = [];
-        SCOPE.set('history', []);
-        refreshHist();
-        closeSheet();
-        toast('History cleared', 'success');
+  function renderTenseData(d) {
+    elTQs.classList.remove('hide');
+    elTToggle.disabled = false;
+    elTDl.disabled = false;
+    elTQInfo.textContent = `${(d.questions || []).length} Qs`;
+    elTQList.textContent = (d.questions || []).map(q => `${q.no}. ${q.sentence}\n   (${q.hint})`).join('\n\n');
+    elTAList.textContent = (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
+    if (elTenseSendOut) {
+      elTenseSendOut.classList.remove('hide');
+      mountSendOut(elTenseSendOut, {
+        module: 'EXERCISE',
+        code: 'EX',
+        items: [
+          { key: 'questions', label: 'QUESTIONS',  getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}` },
+          { key: 'answers',   label: 'ANSWERS',    getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nANSWERS:\n\n${elTAList.textContent}` },
+          { key: 'both',      label: 'BOTH',       getContent: () => `EXERCISE — ${(d.tense||'').toUpperCase()}\n\nQUESTIONS:\n\n${elTQList.textContent}\n\nANSWERS:\n\n${elTAList.textContent}`, default: true }
+        ]
       });
-      document.getElementById('hist-close')?.addEventListener('click', closeSheet);
-    }, 50);
+    }
   }
 
+  function downloadTenseExercise() {
+    if (!state.tenseData) return;
+    const d = state.tenseData;
+    let txt = `EXERCISE — ${(d.tense || '').toUpperCase()}\n${'='.repeat(50)}\n\nQUESTIONS:\n\n`;
+    txt += (d.questions || []).map(q => `${q.no}. ${q.sentence}\n   (${q.hint})`).join('\n\n');
+    txt += `\n\n${'-'.repeat(50)}\nANSWERS:\n\n`;
+    txt += (d.answers || []).map(a => `${a.no}. ${a.answer}\n   ${a.explanation}`).join('\n\n');
+    txt += `\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
+    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
+  }
+
+  /* ════════════════════════════════════════
+     FLASHCARDS
+     ════════════════════════════════════════ */
+  const elFTopic   = $('#flash-topic', root);
+  const elFGo      = $('#flash-go', root);
+  const elFArea    = $('#flash-area', root);
+  const elFCard    = $('#flash-card', root);
+  const elFQ       = $('#flash-q', root);
+  const elFBack    = $('#flash-back', root);
+  const elFA       = $('#flash-a', root);
+  const elFExp     = $('#flash-exp', root);
+  const elFCount   = $('#flash-counter', root);
+  const elFScore   = $('#flash-score', root);
+  const elFBar     = $('#flash-bar', root);
+  const elFMarkRow = $('#flash-mark-row', root);
+  const elFNo      = $('#flash-no', root);
+  const elFYes     = $('#flash-yes', root);
+  const elFPrev    = $('#flash-prev', root);
+  const elFShuffle = $('#flash-shuffle', root);
+  const elFNext    = $('#flash-next', root);
+  const elFDl      = $('#flash-download', root);
+  const elFSum     = $('#flash-summary', root);
+  const elFSumText = $('#flash-sum-text', root);
+  const elFRestart = $('#flash-restart', root);
+  const elFCats    = $('#flash-cats', root);
+
+  const flashCats = opts.flashCategories || {};
+
+  function populateFlashTopics() {
+    const cat = flashCats[state.flashCategory] || {};
+    const topics = cat.topics || [];
+    elFTopic.innerHTML = topics.map(t =>
+      `<option value="${esc(t)}" ${t === state.flashTopic ? 'selected' : ''}>${esc(t)}</option>`
+    ).join('');
+    // If saved topic not in new category, reset to first
+    if (topics.length && !topics.includes(state.flashTopic)) {
+      state.flashTopic = topics[0];
+      elFTopic.value = state.flashTopic;
+    }
+  }
+
+  // Wire category chips
+  $$('.chip[data-fcat]', elFCats).forEach(b => {
+    b.classList.toggle('on', b.dataset.fcat === state.flashCategory);
+    b.addEventListener('click', () => {
+      state.flashCategory = b.dataset.fcat;
+      SCOPE.set('flashCategory', state.flashCategory);
+      $$('.chip[data-fcat]', elFCats).forEach(x => x.classList.toggle('on', x.dataset.fcat === state.flashCategory));
+      populateFlashTopics();
+    });
+  });
+
+  populateFlashTopics();
+
+  if (state.flashCards.length > 0) {
+    elFArea.classList.remove('hide');
+    showFlash();
+  }
+
+  elFGo.addEventListener('click', genFlashcards);
+  $('#flash-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear flashcards?')) return;
+    state.flashCards = []; state.flashIdx = 0; state.flashFlipped = false; state.flashKnown = 0;
+    SCOPE.set('flashCards', []); SCOPE.set('flashKnown', 0);
+    elFArea.classList.add('hide');
+    toast('Cleared', 'success');
+  });
+  elFCard.addEventListener('click', flipFlash);
+  elFNo.addEventListener('click', () => markFlash(false));
+  elFYes.addEventListener('click', () => markFlash(true));
+  elFPrev.addEventListener('click', () => { state.flashFlipped = false; state.flashIdx = (state.flashIdx - 1 + state.flashCards.length) % state.flashCards.length; showFlash(); });
+  elFNext.addEventListener('click', () => { state.flashFlipped = false; state.flashIdx = (state.flashIdx + 1) % state.flashCards.length; showFlash(); });
+  elFShuffle.addEventListener('click', () => {
+    for (let i = state.flashCards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [state.flashCards[i], state.flashCards[j]] = [state.flashCards[j], state.flashCards[i]];
+    }
+    state.flashIdx = 0; state.flashFlipped = false;
+    showFlash();
+    toast('Shuffled');
+  });
+  elFDl.addEventListener('click', downloadFlash);
+  elFRestart.addEventListener('click', () => {
+    state.flashIdx = 0;
+    state.flashKnown = 0;
+    state.flashFlipped = false;
+    SCOPE.set('flashKnown', 0);
+    elFSum.classList.add('hide');
+    showFlash();
+  });
+
+  async function genFlashcards() {
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const topic = elFTopic.value;
+    state.flashTopic = topic;
+    SCOPE.set('flashTopic', topic);
+
+    elFGo.disabled = true;
+    elFGo.textContent = 'GENERATING…';
+    elFArea.classList.add('hide');
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: prompts.flashcard_system || 'Return ONLY valid JSON.' },
+        { role: 'user',   content: `Create 10 flashcards for: "${topic}". Seed: ${Math.floor(Math.random()*99999)}. Return ONLY: {"topic":"${topic}","cards":[{"id":1,"question":"Question?","answer":"Answer","explanation":"English tip or example","explanation_hindi":"हिंदी में स्पष्टीकरण — आसान भाषा में"}]} with 10 items. All unique, educational, and practical.` }
+      ], { temperature: 0.7, maxTokens: 2500 });
+      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
+      state.flashCards = data.cards || [];
+      state.flashIdx = 0;
+      state.flashFlipped = false;
+      state.flashKnown = 0;
+      SCOPE.set('flashCards', state.flashCards);
+      SCOPE.set('flashKnown', 0);
+      elFArea.classList.remove('hide');
+      elFSum.classList.add('hide');
+      showFlash();
+      toast('Done · ' + r.route, 'success');
+    } catch (e) {
+      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
+    } finally {
+      elFGo.disabled = false;
+      elFGo.textContent = '▸ GENERATE';
+    }
+  }
+
+  function showFlash() {
+    if (!state.flashCards.length) return;
+    const c = state.flashCards[state.flashIdx];
+    elFQ.textContent = c.question || '';
+    elFA.textContent = c.answer || '';
+    let exp = '';
+    if (c.explanation) exp += c.explanation;
+    if (c.explanation_hindi) exp += (exp ? '\n\n🇮🇳 ' : '🇮🇳 ') + c.explanation_hindi;
+    elFExp.textContent = exp;
+    elFCount.textContent = `CARD ${state.flashIdx+1} / ${state.flashCards.length}`;
+    elFScore.textContent = `✓ ${state.flashKnown}`;
+    elFBar.style.width = ((state.flashIdx+1)/state.flashCards.length*100) + '%';
+    state.flashFlipped = false;
+    elFBack.classList.add('hide');
+    elFMarkRow.classList.add('hide');
+  }
+
+  function flipFlash() {
+    if (!state.flashCards.length) return;
+    state.flashFlipped = !state.flashFlipped;
+    elFBack.classList.toggle('hide', !state.flashFlipped);
+    elFMarkRow.classList.toggle('hide', !state.flashFlipped);
+  }
+
+  function markFlash(known) {
+    if (known) state.flashKnown++;
+    SCOPE.set('flashKnown', state.flashKnown);
+    if (state.flashIdx === state.flashCards.length - 1) {
+      // Round complete
+      const total = state.flashCards.length;
+      elFSumText.textContent = `${state.flashKnown} / ${total} known · ${Math.round(state.flashKnown/total*100)}% accuracy`;
+      elFSum.classList.remove('hide');
+    } else {
+      state.flashIdx++;
+      showFlash();
+    }
+  }
+
+  function downloadFlash() {
+    if (!state.flashCards.length) { toast('Generate cards first'); return; }
+    let txt = `FLASHCARDS — ${state.flashTopic.toUpperCase()}\n${'='.repeat(50)}\n\n`;
+    state.flashCards.forEach((c, i) => {
+      txt += `${i+1}. ${c.question}\n   ANS: ${c.answer}\n   ${c.explanation || ''}\n   ${c.explanation_hindi || ''}\n\n`;
+    });
+    txt += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
+    downloadFile(gFileName('EXERCISE','EX'), txt, 'text/plain');
+  }
+
+  /* ════════════════════════════════════════
+     VOCAB
+     ════════════════════════════════════════ */
+  const elVLevel = $('#vocab-level', root);
+  const elVGo    = $('#vocab-go', root);
+  const elVList  = $('#vocab-list', root);
+  const elVDl    = $('#vocab-download', root);
+
+  elVLevel.innerHTML = (opts.vocabLevels || []).map(l =>
+    `<option value="${esc(l.key)}" ${l.key === state.vocabLevel ? 'selected' : ''}>${esc(l.label)}</option>`
+  ).join('');
+  if (state.vocabData) renderVocab(state.vocabData);
+
+  elVGo.addEventListener('click', genVocab);
+  $('#vocab-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear vocabulary list?')) return;
+    state.vocabData = null; SCOPE.set('vocabData', null);
+    elVList.innerHTML = ''; elVDl.disabled = true;
+    toast('Cleared', 'success');
+  });
+  elVLevel.addEventListener('change', () => {
+    state.vocabLevel = elVLevel.value;
+    SCOPE.set('vocabLevel', state.vocabLevel);
+  });
+  elVDl.addEventListener('click', downloadVocab);
+
+  async function genVocab() {
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const level = state.vocabLevel;
+    elVGo.disabled = true;
+    elVGo.textContent = 'GENERATING…';
+    elVList.innerHTML = '<div class="mono dim" style="padding:18px 0;text-align:center;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;">Generating…</div>';
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: prompts.vocab_system || 'Return ONLY valid JSON.' },
+        { role: 'user',   content: `Generate 10 unique ${level}-level English words. Seed: ${Math.floor(Math.random()*99999)}. Return: {"level":"${level}","words":[{"word":"accomplish","type":"verb","meaning":"to complete successfully","example1":"She accomplished her goal.","example2":"Hard work helps accomplish great things."}]} with 10 items.` }
+      ], { temperature: 0.7, maxTokens: 2500 });
+      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
+      state.vocabData = data;
+      SCOPE.set('vocabData', data);
+      renderVocab(data);
+      toast('Done · ' + r.route, 'success');
+    } catch (e) {
+      elVList.innerHTML = `<div class="rust mono" style="padding:18px 0;text-align:center;font-size:11px;">Error: ${esc(e.message)}</div>`;
+    } finally {
+      elVGo.disabled = false;
+      elVGo.textContent = '▸ GENERATE';
+    }
+  }
+
+  function renderVocab(d) {
+    elVDl.disabled = false;
+    elVList.innerHTML = (d.words || []).map(w => `
+      <div class="frame subtle" style="padding:12px 14px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="row" style="align-items:baseline;gap:10px;">
+          <span class="serif" style="font-size:22px;">${esc(w.word)}</span>
+          <span class="mono lime" style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;">${esc(w.type || '')}</span>
+        </div>
+        <div class="mono mt-8" style="font-size:11px;color:var(--text);line-height:1.5;">${esc(w.meaning || '')}</div>
+        <div class="mono mt-8" style="font-size:11px;color:var(--muted);line-height:1.7;">
+          1. ${esc(w.example1 || '')}<br>
+          2. ${esc(w.example2 || '')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function downloadVocab() {
+    if (!state.vocabData) return;
+    const d = state.vocabData;
+    let t = `VOCABULARY — ${(d.level || '').toUpperCase()}\n${'='.repeat(40)}\n\n`;
+    (d.words || []).forEach((w, i) => {
+      t += `${i+1}. ${w.word} (${w.type})\n   ${w.meaning}\n   1. ${w.example1}\n   2. ${w.example2}\n\n`;
+    });
+    t += `Grammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
+    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
+  }
+
+  /* ════════════════════════════════════════
+     STORY
+     ════════════════════════════════════════ */
+  const elSTopic   = $('#story-topic', root);
+  const elSGo      = $('#story-go', root);
+  const elSDl      = $('#story-download', root);
+  const elSCopy    = $('#story-copy', root);
+  const elSCard    = $('#story-card', root);
+  const elSTitle   = $('#story-title', root);
+  const elSMeta    = $('#story-meta', root);
+  const elSBody    = $('#story-body', root);
+  const elSGrammar = $('#story-grammar', root);
+  const elSLesson  = $('#story-lesson', root);
+  const elStorySendOut = $('#story-sendout', root);
+
+  elSTopic.innerHTML = (opts.storyTopics || []).map(t =>
+    `<option value="${esc(t)}" ${t === state.storyTopic ? 'selected' : ''}>${esc(t)}</option>`
+  ).join('');
+  if (state.storyData) renderStory(state.storyData);
+
+  elSGo.addEventListener('click', genStory);
+  $('#story-clear', root)?.addEventListener('click', () => {
+    if (!confirm('Clear story?')) return;
+    state.storyData = null; SCOPE.set('storyData', null);
+    elSCard.classList.add('hide'); elSDl.disabled = true; elSCopy.disabled = true;
+    if (elStorySendOut) { elStorySendOut.classList.add('hide'); elStorySendOut.innerHTML = ''; }
+    toast('Cleared', 'success');
+  });
+  elSTopic.addEventListener('change', () => {
+    state.storyTopic = elSTopic.value;
+    SCOPE.set('storyTopic', state.storyTopic);
+  });
+  elSDl.addEventListener('click', downloadStory);
+  elSCopy.addEventListener('click', () => {
+    if (!state.storyData) return;
+    const d = state.storyData;
+    copyToClipboard(`${d.title}\n\n${d.story}\n\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}`);
+  });
+
+  async function genStory() {
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+    const topic = state.storyTopic;
+    elSGo.disabled = true;
+    elSGo.textContent = 'GENERATING…';
+    elSCard.classList.add('hide');
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: prompts.story_system || 'Return ONLY valid JSON.' },
+        { role: 'user',   content: `Write a short story on: "${topic}". Seed: ${Math.floor(Math.random()*99999)}. Return: {"title":"Story Title","topic":"${topic}","level":"intermediate","readingTime":"3 min","story":"200-280 word story. Natural English, relatable to Indian readers, include dialogue.","grammarFocus":"Grammar demonstrated.","lesson":"Key lesson 1-2 sentences."}` }
+      ], { temperature: 0.8, maxTokens: 2000 });
+      const data = JSON.parse(r.text.replace(/```json|```/g, '').trim());
+      state.storyData = data;
+      SCOPE.set('storyData', data);
+      renderStory(data);
+      toast('Done · ' + r.route, 'success');
+    } catch (e) {
+      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
+    } finally {
+      elSGo.disabled = false;
+      elSGo.textContent = '▸ NEW STORY';
+    }
+  }
+
+  function renderStory(d) {
+    elSCard.classList.remove('hide');
+    elSDl.disabled = false;
+    elSCopy.disabled = false;
+    elSTitle.textContent = d.title || '';
+    elSMeta.textContent = `${d.topic || ''} · ${d.level || ''} · ${d.readingTime || ''}`;
+    elSBody.innerHTML = renderMd(d.story || '');
+    elSGrammar.innerHTML = renderMd(d.grammarFocus || '');
+    elSLesson.innerHTML = renderMd(d.lesson || '');
+    if (elStorySendOut) {
+      elStorySendOut.classList.remove('hide');
+      mountSendOut(elStorySendOut, {
+        module: 'EXERCISE',
+        code: 'EX',
+        items: [
+          { key: 'story',   label: 'STORY',          getContent: () => `${d.title}\n\n${d.story}` },
+          { key: 'grammar', label: 'GRAMMAR',         getContent: () => `GRAMMAR FOCUS:\n${d.grammarFocus}` },
+          { key: 'lesson',  label: 'LESSON',          getContent: () => `LESSON:\n${d.lesson}` },
+          { key: 'all',     label: 'ALL',             getContent: () => `${d.title}\n\n${d.story}\n\nGRAMMAR FOCUS:\n${d.grammarFocus}\n\nLESSON:\n${d.lesson}`, default: true }
+        ]
+      });
+    }
+  }
+
+  function downloadStory() {
+    if (!state.storyData) return;
+    const d = state.storyData;
+    const t = `${d.title}\n${'='.repeat((d.title || '').length)}\n${d.topic} | ${d.readingTime}\n\n${d.story}\n\n${'-'.repeat(30)}\nGrammar: ${d.grammarFocus}\nLesson: ${d.lesson}\n\nGrammar.AI · ${new Date().toLocaleDateString('en-IN')}`;
+    downloadFile(gFileName('EXERCISE','EX'), t, 'text/plain');
+  }
+
+  /* ─── Status ─── */
   function refreshStatus() {
     if (!elStatus) return;
     if (!AI.hasAnyRoute()) { elStatus.textContent = '● NO ROUTE'; elStatus.className = 'rust'; }
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
-  function refreshHist() {
-    if (elHL) elHL.textContent = `HISTORY ${state.history.length}/${opts.historyMax || 20}`;
-  }
 
-  mountModuleBackup($('#tr-module-backup', root), {
-    moduleId: 'translator', moduleCode: 'TR', scope: SCOPE
+  mountModuleBackup($('#ex-module-backup', root), {
+    moduleId: 'exercise', moduleCode: 'EX', scope: SCOPE
   });
 
   return {
-    onShow() { refreshStatus(); },
-    destroy() { tb.destroy(); }
+    onShow() { refreshStatus(); }
   };
 }
