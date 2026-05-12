@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────
-   PARAGRAPH MODULE · controller
+   EMAIL MODULE · controller
    ──────────────────────────────────────────────────────────────── */
 
 import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
@@ -8,130 +8,162 @@ import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
 import { mountToolbar, renderToolbarHTML } from '../../core/toolbar.js';
 
-const SCOPE = Storage.scope('paragraph');
+const SCOPE = Storage.scope('email');
 
 export default async function init({ root, module }) {
 
   let manifest = { options: {} };
-  try { manifest = await fetch('modules/paragraph/manifest.json').then(r => r.json()); } catch {}
+  try { manifest = await fetch('modules/email/manifest.json').then(r => r.json()); } catch {}
   const opts = manifest.options || {};
 
   let prompts = {};
   try { prompts = await fetch('config/prompts.json').then(r => r.json()); } catch {}
 
   const state = {
-    mode: SCOPE.get('mode', opts.defaultMode || 'correct'),
-    draft: SCOPE.get('draft', ''),
-    lastOutput: SCOPE.get('lastOutput', '')
+    type: SCOPE.get('type', opts.defaultType || 'professional'),
+    subject: SCOPE.get('subject', ''),
+    body: SCOPE.get('body', ''),
+    last: SCOPE.get('last', null)
   };
 
-  const elInput   = $('#para-input', root);
-  const elOutput  = $('#para-output', root);
-  const elMode    = $('#para-mode', root);
-  const elGo      = $('#para-go', root);
-  const elClear   = $('#para-clear', root);
-  const elSpeak   = $('#para-speak', root);
-  const elCopy    = $('#para-copy', root);
-  const elDl      = $('#para-download', root);
-  const elColor   = $('#para-color', root);
+  const elTypes   = $('#email-types', root);
+  const elSubject = $('#email-subject', root);
+  const elBody    = $('#email-body', root);
+  const elGo      = $('#email-go', root);
+  const elClear   = $('#email-clear', root);
+  const elResults = $('#email-results', root);
+  const elSummary = $('#email-summary', root);
+  const elCorrected = $('#email-corrected', root);
+  const elImproved  = $('#email-improved', root);
+  const elPolished  = $('#email-polished', root);
+  const elSendOut = $('#email-sendout', root);
   const elTbMount = $('#toolbar-mount', root);
-  const elSendOut = $('#para-sendout', root);
   const elModNum  = root.querySelector('[data-bind="moduleNum"]');
   const elStatus  = root.querySelector('[data-bind="status"]');
   const elWC      = root.querySelector('[data-bind="wordCount"]');
 
-  // Wire output color picker — only works on output, input stays clean
-  mountOutputColorPicker(elColor, elOutput);
-
-  if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
-
   function showSendOut() {
-    if (!state.lastOutput || !elSendOut) return;
+    if (!state.last?.polished || !elSendOut) return;
     elSendOut.classList.remove('hide');
     mountSendOut(elSendOut, {
-      module: 'PARAGRAPH',
-      code: 'PA',
+      module: 'EMAIL',
+      code: 'EM',
       items: [
-        { key: 'input',  label: 'INPUT',  getContent: () => state.draft },
-        { key: 'output', label: 'OUTPUT', getContent: () => state.lastOutput, default: true }
+        { key: 'input',     label: 'INPUT',          getContent: () => `Subject: ${state.subject || ''}\n\n${state.body || ''}` },
+        { key: 'corrected', label: 'CORRECTED v1',   getContent: () => elCorrected.innerText || '' },
+        { key: 'improved',  label: 'IMPROVED v2',    getContent: () => elImproved.innerText  || '' },
+        { key: 'polished',  label: 'POLISHED v3',    getContent: () => elPolished.innerText  || '', default: true }
       ]
     });
   }
 
+  // Wire output color pickers — output only, input stays clean
+  mountOutputColorPicker($('#color-corrected', root), elCorrected);
+  mountOutputColorPicker($('#color-improved',  root), elImproved);
+  mountOutputColorPicker($('#color-polished',  root), elPolished);
+
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
-  // Populate modes
-  elMode.innerHTML = (opts.modes || []).map(m =>
-    `<option value="${esc(m.key)}" ${m.key === state.mode ? 'selected' : ''}>${esc(m.label)}</option>`
+  // Build type chips
+  elTypes.innerHTML = (opts.types || []).map(t =>
+    `<button class="chip ${t.key === state.type ? 'on' : ''}" data-type="${esc(t.key)}">${esc(t.label)}</button>`
   ).join('');
+  $$('.chip[data-type]', elTypes).forEach(b => {
+    b.addEventListener('click', () => {
+      state.type = b.dataset.type;
+      SCOPE.set('type', state.type);
+      $$('.chip[data-type]', elTypes).forEach(x => x.classList.toggle('on', x.dataset.type === state.type));
+    });
+  });
 
-  elInput.value = state.draft;
-  if (state.lastOutput) {
-    elOutput.innerHTML = renderMd(state.lastOutput);
-    elOutput.classList.remove('placeholder');
-    elColor?.classList.remove('hide');
+  // Restore drafts
+  elSubject.value = state.subject;
+  elBody.value = state.body;
+
+  // Restore last result if any
+  if (state.last) {
+    elSummary.innerHTML  = renderMd(state.last.summary   || '');
+    elCorrected.innerHTML = renderMd(state.last.corrected || '');
+    elImproved.innerHTML  = renderMd(state.last.improved  || '');
+    elPolished.innerHTML  = renderMd(state.last.polished  || '');
+    elResults.classList.remove('hide');
+    $('#color-corrected', root)?.classList.remove('hide');
+    $('#color-improved',  root)?.classList.remove('hide');
+    $('#color-polished',  root)?.classList.remove('hide');
     showSendOut();
   }
+
   refreshStatus();
   updateWC();
 
-  // Inject toolbar
+  // Toolbar mounted on body textarea
   elTbMount.innerHTML = renderToolbarHTML();
   const tb = mountToolbar(elTbMount, {
-    textarea: elInput,
+    textarea: elBody,
     voiceLang: 'en-IN',
-    enterToSend: false,    // paragraph is multi-line; Enter shouldn't send
+    enterToSend: false,
+    attachAccept: '.txt,.md,.json,.csv',
+    onAttach: async (file) => {
+      const text = await file.text().catch(() => '');
+      elBody.value = (elBody.value ? elBody.value + '\n\n' : '') + text;
+      state.body = elBody.value;
+      SCOPE.set('body', state.body);
+      updateWC();
+      toast(`Attached: ${file.name}`, 'success');
+    },
     onImprove: () => quickAction('quick_improve', 'Improving…'),
     onTranslate: () => quickTranslate(),
-    onSend: () => correctParagraph()
+    onSend: () => analyze()
   });
 
-  elInput.addEventListener('input', () => {
-    state.draft = elInput.value;
-    SCOPE.set('draft', state.draft);
-    updateWC();
-  });
+  elSubject.addEventListener('input', () => { state.subject = elSubject.value; SCOPE.set('subject', state.subject); });
+  elBody.addEventListener('input', () => { state.body = elBody.value; SCOPE.set('body', state.body); updateWC(); });
 
-  elMode.addEventListener('change', () => {
-    state.mode = elMode.value;
-    SCOPE.set('mode', state.mode);
-  });
-
-  elGo.addEventListener('click', correctParagraph);
+  elGo.addEventListener('click', analyze);
   elClear.addEventListener('click', () => {
-    if (!confirm('Clear paragraph and output?')) return;
-    elInput.value = '';
-    elOutput.textContent = 'Corrected paragraph will appear here…';
-    elOutput.classList.add('placeholder');
-    state.draft = '';
-    state.lastOutput = '';
-    SCOPE.set('draft', '');
-    SCOPE.set('lastOutput', '');
+    if (!confirm('Clear email and all results?')) return;
+    elSubject.value = ''; elBody.value = '';
+    state.subject = ''; state.body = ''; state.last = null;
+    SCOPE.set('subject', ''); SCOPE.set('body', ''); SCOPE.remove('last');
+    elResults.classList.add('hide');
     updateWC();
   });
 
-  elSpeak.addEventListener('click', () => {
-    if (!state.lastOutput) { toast('Nothing to speak yet'); return; }
-    if (!('speechSynthesis' in window)) { toast('TTS not supported here', 'error'); return; }
+  // SPEAK per version
+  function speak(text) {
+    if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(state.lastOutput);
-    u.lang = 'en-IN';
-    u.rate = 0.95;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN'; u.rate = 0.95;
     speechSynthesis.speak(u);
     toast('Speaking…');
+  }
+  $('#speak-corrected', root)?.addEventListener('click', () => {
+    if (!state.last?.corrected) { toast('Run analyze first'); return; }
+    speak(state.last.corrected);
+  });
+  $('#speak-improved', root)?.addEventListener('click', () => {
+    if (!state.last?.improved) { toast('Run analyze first'); return; }
+    speak(state.last.improved);
+  });
+  $('#speak-polished', root)?.addEventListener('click', () => {
+    if (!state.last?.polished) { toast('Run analyze first'); return; }
+    speak(state.last.polished);
   });
 
-  elCopy.addEventListener('click', () => {
-    const text = elOutput.innerText || state.lastOutput || '';
-    if (!text) { toast('Nothing to copy yet'); return; }
+  // Copy / download per version
+  $$('[data-copy]', root).forEach(b => b.addEventListener('click', () => {
+    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.copy];
+    const text = el?.innerText || state.last?.[b.dataset.copy] || '';
+    if (!text) { toast('Run analyze first'); return; }
     copyToClipboard(text);
-  });
-
-  elDl.addEventListener('click', () => {
-    const text = elOutput.innerText || state.lastOutput || '';
-    if (!text) { toast('Nothing to download yet'); return; }
-    downloadFile(gFileName('PARAGRAPH', 'PA'), text, 'text/plain');
-  });
+  }));
+  $$('[data-dl]', root).forEach(b => b.addEventListener('click', () => {
+    const el = { corrected: elCorrected, improved: elImproved, polished: elPolished }[b.dataset.dl];
+    const text = el?.innerText || state.last?.[b.dataset.dl] || '';
+    if (!text) { toast('Run analyze first'); return; }
+    downloadFile(gFileName('EMAIL', 'EM'), `Subject: ${state.subject || ''}\n\n${text}`, 'text/plain');
+  }));
 
   function showNoRouteHelp() {
     openSheet(`
@@ -139,7 +171,7 @@ export default async function init({ root, module }) {
       <div class="sheet-title">Connect an AI route</div>
       <div class="frame subtle output-box" style="padding:14px;">
         <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono" style="font-size:12px;line-height:1.7;">Set a Worker URL or any provider key in Settings.</div>
+        <div class="mono" style="font-size:12px;">Set a Worker URL or any provider key in Settings.</div>
       </div>
       <div class="row gap-12 mt-12">
         <button class="btn flex-1" id="nr-cancel">CANCEL</button>
@@ -152,44 +184,71 @@ export default async function init({ root, module }) {
     }, 50);
   }
 
-  async function correctParagraph() {
-    const raw = elInput.value.trim();
-    if (!raw) { toast('Type or paste a paragraph first'); return; }
+  async function analyze() {
+    const subjectRaw = elSubject.value.trim();
+    const bodyRaw    = elBody.value.trim();
+    if (!bodyRaw) { toast('Enter the email body first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
 
     // Strip color tags before sending to AI
-    const text = stripColorTags(raw);
+    const subject = stripColorTags(subjectRaw);
+    const body    = stripColorTags(bodyRaw);
 
-    const modes = prompts.paragraph_modes || {};
-    const modeText = modes[state.mode] || modes.correct;
+    const types = prompts.email_types || {};
+    const typeLabel = types[state.type] || 'professional email';
 
     elGo.disabled = true;
-    elGo.textContent = 'CORRECTING…';
-    elOutput.classList.remove('placeholder');
-    elOutput.textContent = 'Working…';
+    elGo.textContent = 'ANALYZING…';
+    elResults.classList.add('hide');
 
     try {
+      const userPrompt = `Analyse and correct this ${typeLabel}. Subject: "${subject || 'N/A'}". Body: "${body}"
+
+Return ONLY this JSON:
+{
+  "summary": "Grammar check summary: list all grammar errors found, punctuation issues, tone problems. Be specific.",
+  "corrected": "Corrected version — fix ONLY grammar errors, keep original meaning and structure exactly.",
+  "improved": "Improved version — fix grammar AND improve clarity, flow, and tone for ${typeLabel}.",
+  "polished": "Polished version — make it perfectly professional, impactful, and compelling for ${typeLabel}."
+}`;
+
       const r = await AI.chat([
-        { role: 'system', content: prompts.paragraph_system || 'You are an expert grammar corrector.' },
-        { role: 'user',   content: modeText + '\n\nParagraph:\n"' + text + '"' }
-      ], { temperature: 0.5, maxTokens: 2500 });
-      elOutput.innerHTML = renderMd(r.text);
-      state.lastOutput = r.text;
-      SCOPE.set('lastOutput', state.lastOutput);
-      elColor?.classList.remove('hide');
+        { role: 'system', content: prompts.email_system || 'Return ONLY valid JSON, no markdown.' },
+        { role: 'user',   content: userPrompt }
+      ], { temperature: 0.5, maxTokens: 3000 });
+
+      const cleaned = r.text.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(cleaned);
+
+      state.last = {
+        summary:  data.summary  || '',
+        corrected: data.corrected || '',
+        improved:  data.improved  || '',
+        polished:  data.polished  || ''
+      };
+      SCOPE.set('last', state.last);
+
+      elSummary.innerHTML  = renderMd(state.last.summary);
+      elCorrected.innerHTML = renderMd(state.last.corrected);
+      elImproved.innerHTML  = renderMd(state.last.improved);
+      elPolished.innerHTML  = renderMd(state.last.polished);
+      elResults.classList.remove('hide');
+      // Reveal color pickers now that output exists
+      $('#color-corrected', root)?.classList.remove('hide');
+      $('#color-improved',  root)?.classList.remove('hide');
+      $('#color-polished',  root)?.classList.remove('hide');
       showSendOut();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
-      elOutput.textContent = 'Error: ' + (e.details?.[0] || e.message);
-      toast('Failed', 'error');
+      toast('Failed: ' + (e.details?.[0] || e.message), 'error');
     } finally {
       elGo.disabled = false;
-      elGo.textContent = '▸ CORRECT NOW';
+      elGo.textContent = '▸ ANALYZE & CORRECT';
     }
   }
 
   async function quickAction(promptKey, busyMsg) {
-    const raw = elInput.value.trim();
+    const raw = elBody.value.trim();
     if (!raw) { toast('Type something first'); return; }
     if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
     const text = stripColorTags(raw);
@@ -199,9 +258,9 @@ export default async function init({ root, module }) {
         { role: 'system', content: prompts[promptKey] || '' },
         { role: 'user',   content: text }
       ], { temperature: 0.3, maxTokens: 700 });
-      elInput.value = r.text;
-      state.draft = r.text;
-      SCOPE.set('draft', state.draft);
+      elBody.value = r.text;
+      state.body = r.text;
+      SCOPE.set('body', state.body);
       updateWC();
       toast('Done · ' + r.route, 'success');
     } catch (e) {
@@ -210,7 +269,7 @@ export default async function init({ root, module }) {
   }
 
   function quickTranslate() {
-    const raw = elInput.value.trim();
+    const raw = elBody.value.trim();
     if (!raw) { toast('Type something first'); return; }
     const text = stripColorTags(raw);
     const isHindi = /[\u0900-\u097F]/.test(text);
@@ -218,7 +277,7 @@ export default async function init({ root, module }) {
   }
 
   function updateWC() {
-    const t = elInput.value.trim();
+    const t = elBody.value.trim();
     const n = t ? t.split(/\s+/).length : 0;
     if (elWC) elWC.textContent = n + ' WORD' + (n === 1 ? '' : 'S');
   }
@@ -229,8 +288,8 @@ export default async function init({ root, module }) {
     else { elStatus.textContent = '● READY'; elStatus.className = 'lime'; }
   }
 
-  mountModuleBackup($('#para-module-backup', root), {
-    moduleId: 'paragraph', moduleCode: 'PA', scope: SCOPE
+  mountModuleBackup($('#email-module-backup', root), {
+    moduleId: 'email', moduleCode: 'EM', scope: SCOPE
   });
 
   return {
