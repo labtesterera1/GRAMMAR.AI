@@ -6,7 +6,7 @@
    SEND OUT: INPUT / individual / ALL selector + gFileName
    ──────────────────────────────────────────────────────────────── */
 
-import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup } from '../../core/ui.js';
+import { $, $$, esc, toast, copyToClipboard, downloadFile, openSheet, closeSheet, mountSendOut, gFileName, renderMd, stripColorTags, mountOutputColorPicker, mountModuleBackup, openReadMode } from '../../core/ui.js';
 import { Storage } from '../../core/storage.js';
 import { AI } from '../../core/ai.js';
 import { go } from '../../core/router.js';
@@ -121,7 +121,11 @@ export default async function init({ root, module }) {
 
   /* ─── Main actions ─── */
   elGo.addEventListener('click', generate);
-  elRead.addEventListener('click', openReadMode);
+  elRead.addEventListener('click', () => {
+    const text = elInput.value.trim();
+    if (!text) { toast('Type or paste some text first'); return; }
+    openReadMode(text, 'READ MODE · INPUT TEXT');
+  });
   elClear.addEventListener('click', () => {
     if (!confirm('Clear input and all rewrites?')) return;
     elInput.value = '';
@@ -233,6 +237,7 @@ Return ONLY the JSON object.`;
         <div class="rw-card-actions">
           <button class="rw-act" data-act="copy"     data-key="${esc(rw.key)}">⧉ COPY</button>
           <button class="rw-act" data-act="use"      data-key="${esc(rw.key)}">↩ USE THIS</button>
+          <button class="rw-act" data-act="read"     data-key="${esc(rw.key)}">📖 READ</button>
           <button class="rw-act" data-act="color"    data-key="${esc(rw.key)}">🎨 COLOR</button>
           <button class="rw-act" data-act="download" data-key="${esc(rw.key)}">⬇ SAVE</button>
           <button class="rw-act" data-act="speak"    data-key="${esc(rw.key)}">🔊 SPEAK</button>
@@ -244,6 +249,14 @@ Return ONLY the JSON object.`;
     $$('.rw-act[data-act="copy"]', elCards).forEach(b => {
       const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
       b.addEventListener('click', () => copyToClipboard(bodyEl?.innerText || data[b.dataset.key] || ''));
+    });
+    $$('.rw-act[data-act="read"]', elCards).forEach(b => {
+      b.addEventListener('click', () => {
+        const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
+        const text = bodyEl?.innerText || data[b.dataset.key] || '';
+        const rw = REWRITES.find(r => r.key === b.dataset.key);
+        openReadMode(text, `${rw?.num || ''} · ${rw?.label || ''}`);
+      });
     });
     $$('.rw-act[data-act="color"]', elCards).forEach(b => {
       const bodyEl = document.getElementById('rwtext-' + b.dataset.key);
@@ -306,74 +319,6 @@ Return ONLY the JSON object.`;
       lines.push(`\n${rw.num} ${rw.label}:\n${data[rw.key] || ''}`);
     });
     return lines.join('\n');
-  }
-
-  /* ─── READ MODE ─── */
-  function openReadMode() {
-    const text = elInput.value.trim();
-    if (!text) { toast('Type or paste some text first'); return; }
-
-    let fontSize = 16;
-    let lineH    = 1.8;
-
-    openSheet(`
-      <div class="sheet-handle"></div>
-      <div class="sheet-inner">
-        <div class="kicker"><span>READ MODE</span><span class="lime">● FOCUSED</span></div>
-
-        <!-- Controls -->
-        <div class="row center gap-12" style="margin-bottom:14px;flex-wrap:wrap;">
-          <div class="row gap-12 center">
-            <button class="btn btn-icon" id="rd-fa-">A−</button>
-            <span class="mono" style="font-size:11px;color:var(--muted);" id="rd-fsize">16px</span>
-            <button class="btn btn-icon" id="rd-fa+">A+</button>
-          </div>
-          <div class="row gap-12 center">
-            <button class="btn btn-icon" id="rd-lh-">≡−</button>
-            <span class="mono" style="font-size:11px;color:var(--muted);" id="rd-lhval">1.8</span>
-            <button class="btn btn-icon" id="rd-lh+">≡+</button>
-          </div>
-          <button class="btn flex-1" id="rd-speak">🔊 SPEAK</button>
-        </div>
-
-        <div class="ticks">${'<i></i>'.repeat(28)}</div>
-
-        <!-- Reading area -->
-        <div class="rw-read-body" id="rd-body" style="font-size:${fontSize}px;line-height:${lineH};">
-          ${esc(text)}
-        </div>
-
-        <div class="ticks mt-12">${'<i></i>'.repeat(28)}</div>
-        <button class="btn mt-12" style="width:100%;" id="rd-close">CLOSE</button>
-      </div>
-    `);
-
-    setTimeout(() => {
-      const rdBody  = document.getElementById('rd-body');
-      const rdFsize = document.getElementById('rd-fsize');
-      const rdLhval = document.getElementById('rd-lhval');
-
-      function applyStyle() {
-        if (rdBody)  { rdBody.style.fontSize = fontSize + 'px'; rdBody.style.lineHeight = lineH; }
-        if (rdFsize)   rdFsize.textContent = fontSize + 'px';
-        if (rdLhval)   rdLhval.textContent = lineH.toFixed(1);
-      }
-
-      document.getElementById('rd-fa-')?.addEventListener('click', () => {
-        fontSize = Math.max(12, fontSize - 2); applyStyle();
-      });
-      document.getElementById('rd-fa+')?.addEventListener('click', () => {
-        fontSize = Math.min(28, fontSize + 2); applyStyle();
-      });
-      document.getElementById('rd-lh-')?.addEventListener('click', () => {
-        lineH = +(Math.max(1.2, lineH - 0.2)).toFixed(1); applyStyle();
-      });
-      document.getElementById('rd-lh+')?.addEventListener('click', () => {
-        lineH = +(Math.min(3.0, lineH + 0.2)).toFixed(1); applyStyle();
-      });
-      document.getElementById('rd-speak')?.addEventListener('click', () => speak(text));
-      document.getElementById('rd-close')?.addEventListener('click', closeSheet);
-    }, 60);
   }
 
   /* ─── TTS ─── */
