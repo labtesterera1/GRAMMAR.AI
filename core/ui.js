@@ -199,9 +199,9 @@ export function mountModuleBackup(container, { moduleId, moduleCode, scope, onIm
 export function openReadMode(text, title = 'READ MODE') {
   document.getElementById('rm-overlay-root')?.remove();
 
-  let fontSize  = 22;
-  let lineH     = 1.85;
-  const ticks   = '<i></i>'.repeat(32);
+  let fontSize = 22;
+  let lineH    = 1.85;
+  const ticks  = '<i></i>'.repeat(32);
 
   const div = document.createElement('div');
   div.id = 'rm-overlay-root';
@@ -210,9 +210,9 @@ export function openReadMode(text, title = 'READ MODE') {
     <div class="rm-header">
       <span class="rm-title">📖 ${esc(title)}</span>
       <div class="rm-controls">
-        <button class="btn btn-icon" id="rm-fa-">A−</button>
+        <button class="btn btn-icon" id="rm-dec" title="Decrease font">A−</button>
         <span class="rm-fsize" id="rm-fsize">22px</span>
-        <button class="btn btn-icon" id="rm-fa+">A+</button>
+        <button class="btn btn-icon" id="rm-inc" title="Increase font">A+</button>
         <button class="btn btn-icon" id="rm-speak" title="Speak aloud">🔊</button>
         <button class="btn btn-rust" id="rm-close">✕ CLOSE</button>
       </div>
@@ -232,10 +232,10 @@ export function openReadMode(text, title = 'READ MODE') {
     fsize.textContent     = fontSize + 'px';
   }
 
-  div.querySelector('#rm-fa-').addEventListener('click', () => {
+  div.querySelector('#rm-dec').addEventListener('click', () => {
     fontSize = Math.max(14, fontSize - 2); applyStyle();
   });
-  div.querySelector('#rm-fa+').addEventListener('click', () => {
+  div.querySelector('#rm-inc').addEventListener('click', () => {
     fontSize = Math.min(36, fontSize + 2); applyStyle();
   });
   div.querySelector('#rm-speak').addEventListener('click', () => {
