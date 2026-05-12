@@ -14,7 +14,7 @@ const MODULE_PREFIXES = {
   notes:      ['notes.'],
   rewrite:    ['rewrite.'],
   timezone:   ['timezone.'],
-  settings:   ['workerUrl','mode','primary','key.','lang','fn.']
+  settings:   ['workerUrl','workerUrl.bk','mode','primary','key.','lang','fn.']
 };
 
 export const Storage = {

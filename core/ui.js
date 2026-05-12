@@ -191,6 +191,72 @@ export function mountModuleBackup(container, { moduleId, moduleCode, scope, onIm
   });
 }
 
+/* ─── READ MODE OVERLAY ──────────────────────────────────────────
+   openReadMode(text, title)
+   Full-screen overlay with Caveat handwriting font.
+   Font size A−/A+, 🔊 speak, ESC to close.
+   ─────────────────────────────────────────────────────────────── */
+export function openReadMode(text, title = 'READ MODE') {
+  document.getElementById('rm-overlay-root')?.remove();
+
+  let fontSize  = 22;
+  let lineH     = 1.85;
+  const ticks   = '<i></i>'.repeat(32);
+
+  const div = document.createElement('div');
+  div.id = 'rm-overlay-root';
+  div.className = 'rm-overlay';
+  div.innerHTML = `
+    <div class="rm-header">
+      <span class="rm-title">📖 ${esc(title)}</span>
+      <div class="rm-controls">
+        <button class="btn btn-icon" id="rm-fa-">A−</button>
+        <span class="rm-fsize" id="rm-fsize">22px</span>
+        <button class="btn btn-icon" id="rm-fa+">A+</button>
+        <button class="btn btn-icon" id="rm-speak" title="Speak aloud">🔊</button>
+        <button class="btn btn-rust" id="rm-close">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="rm-ticks">${ticks}</div>
+    <div class="rm-body" id="rm-body">${esc(text)}</div>
+  `;
+
+  document.body.appendChild(div);
+
+  const body  = div.querySelector('#rm-body');
+  const fsize = div.querySelector('#rm-fsize');
+
+  function applyStyle() {
+    body.style.fontSize   = fontSize + 'px';
+    body.style.lineHeight = lineH;
+    fsize.textContent     = fontSize + 'px';
+  }
+
+  div.querySelector('#rm-fa-').addEventListener('click', () => {
+    fontSize = Math.max(14, fontSize - 2); applyStyle();
+  });
+  div.querySelector('#rm-fa+').addEventListener('click', () => {
+    fontSize = Math.min(36, fontSize + 2); applyStyle();
+  });
+  div.querySelector('#rm-speak').addEventListener('click', () => {
+    if (!('speechSynthesis' in window)) { toast('TTS not supported'); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN'; u.rate = 0.88;
+    speechSynthesis.speak(u);
+    toast('Speaking…');
+  });
+
+  function closeRM() {
+    speechSynthesis?.cancel();
+    div.remove();
+    document.removeEventListener('keydown', escH);
+  }
+  div.querySelector('#rm-close').addEventListener('click', closeRM);
+  const escH = (e) => { if (e.key === 'Escape') closeRM(); };
+  document.addEventListener('keydown', escH);
+}
+
 /* ─── OUTPUT COLOR PICKER ─────────────────────────────────────────
    mountOutputColorPicker(btn, outputEl)
    Applies colors to selected text in OUTPUT divs only.

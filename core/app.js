@@ -79,6 +79,18 @@ async function boot() {
     requestPersist().catch(() => {});
   }
 
+  // Edge Desktop: restore worker URL from backup if primary was wiped
+  const isEdge   = navigator.userAgent.includes('Edg/');
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isEdge && !isMobile) {
+    const workerUrl = Storage.get('workerUrl', '');
+    const workerBk  = Storage.get('workerUrl.bk', '');
+    if (!workerUrl && workerBk) {
+      Storage.set('workerUrl', workerBk);
+      toast('⚡ Worker URL restored from backup (Edge)', 'success');
+    }
+  }
+
   // Backup reminder — show after 7 days without export
   setTimeout(() => {
     if (checkBackupReminder()) {

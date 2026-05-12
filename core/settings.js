@@ -116,6 +116,7 @@ export async function renderSettings(host) {
             <button id="worker-test">TEST</button>
           </div>
           <div class="mode-help">Worker handles auth + key storage server-side. No API keys needed when using Worker-only mode.</div>
+          <div id="edge-worker-note" class="mono hide" style="font-size:10px;line-height:1.65;color:var(--muted);margin-top:8px;padding:8px 10px;background:var(--surface-2);border-left:2px solid var(--rust);"></div>
         </div>
 
         <!-- ─── AI MODE ─────────────────────────────────────── -->
@@ -272,11 +273,15 @@ export async function renderSettings(host) {
     const u = $('#worker-url', host).value.trim();
     if (!/^https?:\/\//.test(u) && u !== '') { toast('URL must start with https://', 'error'); return; }
     AI.setWorkerUrl(u);
+    // Save backup key — survives Edge storage clearing
+    if (u) Storage.set('workerUrl.bk', u);
     paintWorkerBadge(host);
-    toast(u ? 'Worker URL saved' : 'Worker URL cleared', 'success');
+    paintEdgeWorkerNote(host);
+    toast(u ? 'Worker URL saved ✓' : 'Worker URL cleared', 'success');
   });
   $('#worker-clear', host).addEventListener('click', () => {
     AI.clearWorkerUrl();
+    Storage.remove('workerUrl.bk');
     $('#worker-url', host).value = '';
     paintWorkerBadge(host);
     toast('Worker cleared');
@@ -304,6 +309,7 @@ export async function renderSettings(host) {
   /* ─── Storage ─── */
   await refreshStorage(host);
   $('#storage-refresh', host).addEventListener('click', () => refreshStorage(host));
+  paintEdgeWorkerNote(host);
 
   /* ─── Data ─── */
   /* ─── Structured Export ─── */
@@ -502,6 +508,26 @@ function paintWorkerBadge(host) {
   if (!badge) return;
   if (AI.hasWorker()) { badge.textContent = '● SET'; badge.className = 'prov-badge lime'; }
   else                { badge.textContent = '● EMPTY'; badge.className = 'prov-badge dim'; }
+}
+
+function paintEdgeWorkerNote(host) {
+  const isEdge    = navigator.userAgent.includes('Edg/');
+  const isMobile  = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  const noteEl    = $('#edge-worker-note', host);
+  if (!noteEl) return;
+  if (isEdge && !isMobile && !AI.hasWorker()) {
+    noteEl.innerHTML = `
+      <span class="rust">⚠ Edge Desktop — Worker URL may be wiped on browser close.</span><br>
+      Fix: Press <strong>Ctrl+D</strong> to add to Favorites, or install via Edge menu → Apps.<br>
+      A backup copy is saved automatically each time you tap SAVE.
+    `;
+    noteEl.classList.remove('hide');
+  } else if (isEdge && !isMobile && AI.hasWorker()) {
+    noteEl.innerHTML = '● Worker URL backed up — will auto-restore if Edge clears storage.';
+    noteEl.classList.remove('hide');
+  } else {
+    noteEl.classList.add('hide');
+  }
 }
 
 async function refreshStorage(host) {
