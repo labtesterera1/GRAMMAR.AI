@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.4.0",
-  "build": "2026.05.12",
+  "version": "1.4.1",
+  "build": "2026.05.13",
   "channel": "stable",
   "history": [
     {
-      "version": "1.4.0",
-      "date": "2026-05-12",
-      "notes": "SW skipWaiting+clients.claim for instant version updates. READ MODE redesigned as full-screen overlay with Caveat handwriting font, per-card v1-v5 read buttons in Rewrite. Worker URL backup key restored on Edge boot. AI prompts improved across all modules."
+      "version": "1.4.1",
+      "date": "2026-05-13",
+      "notes": "Translator: new हिंदी→EN tab for Devanagari script input. Noto Sans Devanagari font. Paste from clipboard button. Previous EN→HI and HI→EN tabs unchanged."
     },
     {
-      "version": "1.3.9",
+      "version": "1.4.0",
       "date": "2026-05-12",
-      "notes": "Timezone WORLD↔IST expanded to 65 cities, 10 regions, LIVE+SELECT modes."
+      "notes": "SW skipWaiting, READ MODE full-screen Caveat font, Edge worker backup, improved AI prompts."
     }
   ]
 }
