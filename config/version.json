@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "build": "2026.05.13",
   "channel": "stable",
   "history": [
     {
-      "version": "1.4.1",
+      "version": "1.4.2",
       "date": "2026-05-13",
-      "notes": "Translator: new हिंदी→EN tab for Devanagari script input. Noto Sans Devanagari font. Paste from clipboard button. Previous EN→HI and HI→EN tabs unchanged."
+      "notes": "हिंदी→EN tab now accepts both Devanagari script AND Roman Hindi (auto-detect). Font fallback chain added for Windows/Android. Prompt updated to detect and handle both input types."
     },
     {
-      "version": "1.4.0",
-      "date": "2026-05-12",
-      "notes": "SW skipWaiting, READ MODE full-screen Caveat font, Edge worker backup, improved AI prompts."
+      "version": "1.4.1",
+      "date": "2026-05-13",
+      "notes": "Translator: new हिंदी→EN tab for Devanagari script input with Noto Sans Devanagari font."
     }
   ]
 }
