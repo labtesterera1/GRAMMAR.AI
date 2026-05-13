@@ -36,23 +36,37 @@
   <div id="tr-deva-input" class="hide">
     <div class="s-ttl">
       <span>हिंदी INPUT</span>
-      <span class="num">DEVANAGARI SCRIPT</span>
+      <span class="num">DEVANAGARI OR ROMAN</span>
     </div>
 
-    <!-- Paste from clipboard button — useful on desktop -->
+    <!-- Two input type badges -->
+    <div class="row gap-12" style="margin-bottom:10px;flex-wrap:wrap;">
+      <div class="frame subtle" style="padding:8px 12px;flex:1;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">DEVANAGARI</div>
+        <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">कम्प्यूटर पर</div>
+      </div>
+      <div class="frame subtle" style="padding:8px 12px;flex:1;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">ROMAN HINDI</div>
+        <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">Computer par</div>
+      </div>
+    </div>
+
+    <!-- Paste from clipboard button -->
     <button class="btn" id="tr-deva-paste" style="width:100%;margin-bottom:10px;">
       📋 PASTE FROM CLIPBOARD
     </button>
 
     <textarea class="deva-input" id="tr-deva"
-      placeholder="यहाँ हिंदी टाइप करें या पेस्ट करें…"
+      placeholder="Type Roman Hindi (tumhara naam kya hai) OR paste Devanagari (तुम्हारा नाम क्या है)…"
       rows="5"
-      aria-label="Hindi Devanagari input"
+      aria-label="Hindi input — Devanagari or Roman"
       lang="hi"
       dir="ltr"></textarea>
 
     <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
-      Mobile: use your Hindi keyboard (e.g. Gboard → हिंदी). Desktop: paste from any Hindi source or enable Windows Hindi keyboard (Win+Space).
+      Both work: Roman Hindi (tum waha jao) or Devanagari script (तुम वहाँ जाओ) or mixed. AI detects automatically.
     </div>
   </div>
 
