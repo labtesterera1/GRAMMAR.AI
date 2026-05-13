@@ -748,13 +748,14 @@ input, textarea, select { background: transparent; border: none; outline: none; 
   .rm-body { padding: 48px 15%; font-size: 26px; max-width: 900px; margin: 0 auto; }
 }
 
-/* ─── DEVANAGARI INPUT ─── */
+/* ─── DEVANAGARI / HINDI INPUT ─── */
 .deva-input {
   width: 100%;
   background: var(--surface);
   border: 0.5px solid var(--border-2);
   padding: 12px 14px;
-  font-family: 'Noto Sans Devanagari', sans-serif;
+  /* Noto → Nirmala UI (Windows 8+) → Mangal (older Windows) → system sans */
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', 'Arial Unicode MS', sans-serif;
   font-size: 18px;
   color: var(--text);
   line-height: 1.7;
@@ -765,7 +766,7 @@ input, textarea, select { background: transparent; border: none; outline: none; 
 }
 .deva-input:focus { outline: none; border-color: var(--lime); }
 .deva-input::placeholder {
-  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', sans-serif;
   color: var(--dim);
   font-size: 16px;
 }
