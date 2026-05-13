@@ -10,9 +10,18 @@
         "key": "en2hi",
         "label": "English → Hindi",
         "modes": [
-          { "key": "simple_hindi", "label": "Simple Hindi" },
-          { "key": "bilingual",    "label": "Hindi + English summary" },
-          { "key": "bullet",       "label": "Hindi bullet points" }
+          {
+            "key": "simple_hindi",
+            "label": "Simple Hindi"
+          },
+          {
+            "key": "bilingual",
+            "label": "Hindi + English summary"
+          },
+          {
+            "key": "bullet",
+            "label": "Hindi bullet points"
+          }
         ],
         "default": "simple_hindi"
       },
@@ -20,13 +29,52 @@
         "key": "hi2en",
         "label": "Hindi → English",
         "modes": [
-          { "key": "simple",  "label": "Simple English" },
-          { "key": "formal",  "label": "Formal English" },
-          { "key": "natural", "label": "Natural conversational" }
+          {
+            "key": "simple",
+            "label": "Simple English"
+          },
+          {
+            "key": "formal",
+            "label": "Formal English"
+          },
+          {
+            "key": "natural",
+            "label": "Natural conversational"
+          }
         ],
         "default": "simple"
+      },
+      {
+        "key": "deva2en",
+        "label": "हिंदी → EN",
+        "from": "हिंदी (Devanagari)",
+        "to": "English",
+        "default": "natural",
+        "script": "devanagari"
       }
     ],
-    "historyMax": 20
+    "historyMax": 20,
+    "deva_modes": [
+      {
+        "key": "natural",
+        "label": "Natural"
+      },
+      {
+        "key": "literal",
+        "label": "Literal"
+      },
+      {
+        "key": "formal",
+        "label": "Formal"
+      },
+      {
+        "key": "simple",
+        "label": "Simple"
+      },
+      {
+        "key": "explained",
+        "label": "Explained"
+      }
+    ]
   }
 }

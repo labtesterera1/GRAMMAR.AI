@@ -5,7 +5,7 @@
   </div>
   <div class="headline">Translator</div>
   <div class="subline">
-    <span>EN · HI · CONVERT</span>
+    <span>EN · HI · हिंदी</span>
     <span data-bind="historyLine">HISTORY 0/20</span>
   </div>
   <div class="ticks">
@@ -16,23 +16,57 @@
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
+  <!-- Direction chips — EN→HI / HI→EN / हिंदी→EN -->
   <div class="lang-chips" id="dir-chips"></div>
 
+  <!-- MODE select -->
   <div class="s-ttl"><span>MODE</span></div>
   <select class="select" id="tr-mode"></select>
 
-  <div class="s-ttl"><span>INPUT</span></div>
-  <textarea class="composer-input" id="tr-input" placeholder="Type text to translate…" rows="4" aria-label="Translate input"></textarea>
-  <div id="toolbar-mount"></div>
+  <!-- ─── STANDARD INPUT (EN→HI and HI→EN) ─── -->
+  <div id="tr-standard-input">
+    <div class="s-ttl"><span>INPUT</span></div>
+    <textarea class="composer-input" id="tr-input"
+      placeholder="Type text to translate…"
+      rows="4" aria-label="Translate input"></textarea>
+    <div id="toolbar-mount"></div>
+  </div>
 
+  <!-- ─── DEVANAGARI INPUT (हिंदी→EN only) ─── -->
+  <div id="tr-deva-input" class="hide">
+    <div class="s-ttl">
+      <span>हिंदी INPUT</span>
+      <span class="num">DEVANAGARI SCRIPT</span>
+    </div>
+
+    <!-- Paste from clipboard button — useful on desktop -->
+    <button class="btn" id="tr-deva-paste" style="width:100%;margin-bottom:10px;">
+      📋 PASTE FROM CLIPBOARD
+    </button>
+
+    <textarea class="deva-input" id="tr-deva"
+      placeholder="यहाँ हिंदी टाइप करें या पेस्ट करें…"
+      rows="5"
+      aria-label="Hindi Devanagari input"
+      lang="hi"
+      dir="ltr"></textarea>
+
+    <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
+      Mobile: use your Hindi keyboard (e.g. Gboard → हिंदी). Desktop: paste from any Hindi source or enable Windows Hindi keyboard (Win+Space).
+    </div>
+  </div>
+
+  <!-- Translate + Clear -->
   <div class="row gap-12 mt-12">
     <button class="btn btn-primary flex-1" id="tr-go">▸ TRANSLATE</button>
     <button class="btn btn-rust" id="tr-clear">CLEAR</button>
   </div>
 
+  <!-- Output -->
   <div class="s-ttl"><span>OUTPUT</span></div>
   <div class="frame subtle">
-    <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+    <span class="c tl"></span><span class="c tr"></span>
+    <span class="c bl"></span><span class="c br"></span>
     <div class="output-box placeholder" id="tr-output">Translation will appear here…</div>
   </div>
 
