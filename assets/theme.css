@@ -747,3 +747,25 @@ input, textarea, select { background: transparent; border: none; outline: none; 
 @media (min-width: 1024px) {
   .rm-body { padding: 48px 15%; font-size: 26px; max-width: 900px; margin: 0 auto; }
 }
+
+/* ─── DEVANAGARI INPUT ─── */
+.deva-input {
+  width: 100%;
+  background: var(--surface);
+  border: 0.5px solid var(--border-2);
+  padding: 12px 14px;
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 18px;
+  color: var(--text);
+  line-height: 1.7;
+  resize: none;
+  min-height: 100px;
+  display: block;
+  word-break: break-word;
+}
+.deva-input:focus { outline: none; border-color: var(--lime); }
+.deva-input::placeholder {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  color: var(--dim);
+  font-size: 16px;
+}
