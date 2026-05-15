@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.4.2",
-  "build": "2026.05.13",
+  "version": "1.4.3",
+  "build": "2026.05.16",
   "channel": "stable",
   "history": [
     {
-      "version": "1.4.2",
-      "date": "2026-05-13",
-      "notes": "हिंदी→EN tab now accepts both Devanagari script AND Roman Hindi (auto-detect). Font fallback chain added for Windows/Android. Prompt updated to detect and handle both input types."
+      "version": "1.4.3",
+      "date": "2026-05-16",
+      "notes": "Translator: PDF FIX tab — paste garbled Hindi PDF text, AI fixes encoding to proper Devanagari (Step 2), then translate to English (Step 3). Noto Sans Devanagari on fixed output. Works best 1-2 paragraphs at a time."
     },
     {
-      "version": "1.4.1",
+      "version": "1.4.2",
       "date": "2026-05-13",
-      "notes": "Translator: new हिंदी→EN tab for Devanagari script input with Noto Sans Devanagari font."
+      "notes": "हिंदी→EN accepts Devanagari + Roman Hindi + mixed. Auto-detect."
     }
   ]
 }
