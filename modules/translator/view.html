@@ -5,7 +5,7 @@
   </div>
   <div class="headline">Translator</div>
   <div class="subline">
-    <span>EN · HI · हिंदी</span>
+    <span>EN · HI · हिंदी · PDF</span>
     <span data-bind="historyLine">HISTORY 0/20</span>
   </div>
   <div class="ticks">
@@ -16,82 +16,150 @@
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 
-  <!-- Direction chips — EN→HI / HI→EN / हिंदी→EN -->
+  <!-- Direction chips -->
   <div class="lang-chips" id="dir-chips"></div>
 
-  <!-- MODE select -->
-  <div class="s-ttl"><span>MODE</span></div>
-  <select class="select" id="tr-mode"></select>
+  <!-- ─── STANDARD SECTIONS (EN→HI, HI→EN, हिंदी→EN) ─── -->
+  <div id="tr-standard-section">
+    <!-- MODE -->
+    <div class="s-ttl"><span>MODE</span></div>
+    <select class="select" id="tr-mode"></select>
 
-  <!-- ─── STANDARD INPUT (EN→HI and HI→EN) ─── -->
-  <div id="tr-standard-input">
-    <div class="s-ttl"><span>INPUT</span></div>
-    <textarea class="composer-input" id="tr-input"
-      placeholder="Type text to translate…"
-      rows="4" aria-label="Translate input"></textarea>
-    <div id="toolbar-mount"></div>
+    <!-- Standard input (EN→HI and HI→EN) -->
+    <div id="tr-standard-input">
+      <div class="s-ttl"><span>INPUT</span></div>
+      <textarea class="composer-input" id="tr-input"
+        placeholder="Type text to translate…"
+        rows="4" aria-label="Translate input"></textarea>
+      <div id="toolbar-mount"></div>
+    </div>
+
+    <!-- Devanagari input (हिंदी→EN only) -->
+    <div id="tr-deva-input" class="hide">
+      <div class="s-ttl">
+        <span>हिंदी INPUT</span>
+        <span class="num">DEVANAGARI OR ROMAN</span>
+      </div>
+      <div class="row gap-12" style="margin-bottom:10px;flex-wrap:wrap;">
+        <div class="frame subtle" style="padding:8px 12px;flex:1;">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">DEVANAGARI</div>
+          <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">कम्प्यूटर पर</div>
+        </div>
+        <div class="frame subtle" style="padding:8px 12px;flex:1;">
+          <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+          <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">ROMAN HINDI</div>
+          <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">Computer par</div>
+        </div>
+      </div>
+      <button class="btn" id="tr-deva-paste" style="width:100%;margin-bottom:10px;">
+        📋 PASTE FROM CLIPBOARD
+      </button>
+      <textarea class="deva-input" id="tr-deva"
+        placeholder="Type Roman Hindi (tumhara naam kya hai) OR paste Devanagari (तुम्हारा नाम क्या है)…"
+        rows="5" aria-label="Hindi input" lang="hi" spellcheck="false"></textarea>
+      <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
+        Both work: Roman Hindi (tum waha jao) or Devanagari (तुम वहाँ जाओ) or mixed. AI detects automatically.
+      </div>
+    </div>
+
+    <!-- Translate + Clear -->
+    <div class="row gap-12 mt-12">
+      <button class="btn btn-primary flex-1" id="tr-go">▸ TRANSLATE</button>
+      <button class="btn btn-rust" id="tr-clear">CLEAR</button>
+    </div>
+
+    <!-- Output -->
+    <div class="s-ttl"><span>OUTPUT</span></div>
+    <div class="frame subtle">
+      <span class="c tl"></span><span class="c tr"></span>
+      <span class="c bl"></span><span class="c br"></span>
+      <div class="output-box placeholder" id="tr-output">Translation will appear here…</div>
+    </div>
+    <div class="row gap-12 mt-12">
+      <button class="btn hide" id="tr-color" title="Color output text">🎨</button>
+      <button class="btn flex-1" id="tr-speak">🔊 SPEAK</button>
+      <button class="btn flex-1" id="tr-copy">⧉ COPY</button>
+      <button class="btn flex-1" id="tr-download">⬇ DOWNLOAD</button>
+      <button class="btn flex-1" id="tr-history">📚 HISTORY</button>
+    </div>
+    <div id="tr-sendout" class="hide"></div>
   </div>
 
-  <!-- ─── DEVANAGARI INPUT (हिंदी→EN only) ─── -->
-  <div id="tr-deva-input" class="hide">
-    <div class="s-ttl">
-      <span>हिंदी INPUT</span>
-      <span class="num">DEVANAGARI OR ROMAN</span>
+  <!-- ─── PDF FIX SECTION ─── -->
+  <div id="tr-pdffix-section" class="hide">
+
+    <!-- What is PDF FIX -->
+    <div class="frame subtle mt-12" style="padding:12px 14px;">
+      <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+      <div class="mono lime" style="font-size:9px;letter-spacing:0.16em;margin-bottom:4px;">WHAT IS PDF FIX?</div>
+      <div class="mono" style="font-size:10px;color:var(--muted);line-height:1.6;">
+        Old Hindi PDFs (Krutidev, Chanakya, Shivaji fonts) store text as garbled Latin characters.
+        When you copy and paste, you get broken text instead of proper Hindi.<br>
+        PDF FIX repairs the encoding → gives you proper Devanagari → then translates to English.
+      </div>
+      <div class="mono" style="font-size:9px;color:var(--dim);margin-top:6px;">⚠ Works best with 1-2 paragraphs at a time.</div>
     </div>
 
-    <!-- Two input type badges -->
-    <div class="row gap-12" style="margin-bottom:10px;flex-wrap:wrap;">
-      <div class="frame subtle" style="padding:8px 12px;flex:1;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">DEVANAGARI</div>
-        <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">कम्प्यूटर पर</div>
-      </div>
-      <div class="frame subtle" style="padding:8px 12px;flex:1;">
-        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-        <div class="mono lime" style="font-size:9px;letter-spacing:0.14em;">ROMAN HINDI</div>
-        <div class="mono" style="font-size:11px;color:var(--text);margin-top:2px;">Computer par</div>
-      </div>
+    <!-- STEP 1 -->
+    <div class="s-ttl mt-12">
+      <span>STEP 1 — PASTE GARBLED PDF TEXT</span>
     </div>
-
-    <!-- Paste from clipboard button -->
-    <button class="btn" id="tr-deva-paste" style="width:100%;margin-bottom:10px;">
+    <button class="btn" id="pdf-paste" style="width:100%;margin-bottom:10px;">
       📋 PASTE FROM CLIPBOARD
     </button>
-
-    <textarea class="deva-input" id="tr-deva"
-      placeholder="Type Roman Hindi (tumhara naam kya hai) OR paste Devanagari (तुम्हारा नाम क्या है)…"
+    <textarea class="composer-input" id="pdf-input"
+      placeholder="Paste garbled Hindi PDF text here… e.g. dEiI~(k ij ut+jsa x<+k, gq,"
       rows="5"
-      aria-label="Hindi input — Devanagari or Roman"
-      lang="hi"
-      dir="ltr"></textarea>
-
-    <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;">
-      Both work: Roman Hindi (tum waha jao) or Devanagari script (तुम वहाँ जाओ) or mixed. AI detects automatically.
+      spellcheck="false"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="none"
+      style="font-family:var(--mono);font-size:13px;"></textarea>
+    <div class="row gap-12 mt-12">
+      <button class="btn btn-primary flex-1" id="pdf-fix-btn">⚙ FIX ENCODING</button>
+      <button class="btn btn-rust" id="pdf-clear-btn">CLEAR ALL</button>
     </div>
-  </div>
 
-  <!-- Translate + Clear -->
-  <div class="row gap-12 mt-12">
-    <button class="btn btn-primary flex-1" id="tr-go">▸ TRANSLATE</button>
-    <button class="btn btn-rust" id="tr-clear">CLEAR</button>
-  </div>
+    <!-- STEP 2 -->
+    <div id="pdf-step2" class="hide">
+      <div class="s-ttl mt-16">
+        <span>STEP 2 — FIXED HINDI (Devanagari)</span>
+        <span class="lime" id="pdf-fix-status">● FIXED</span>
+      </div>
+      <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-bottom:8px;">
+        Review the fixed text below. If it looks correct, tap TRANSLATE TO ENGLISH.
+      </div>
+      <div class="frame subtle" style="padding:14px 16px;">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div id="pdf-fixed-output"
+          style="font-family:'Noto Sans Devanagari','Nirmala UI','Mangal',sans-serif;font-size:18px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;min-height:60px;">
+        </div>
+      </div>
+      <div class="row gap-12 mt-10">
+        <button class="btn flex-1" id="pdf-copy-fixed">⧉ COPY HINDI</button>
+        <button class="btn btn-primary flex-1" id="pdf-translate-btn">▸ TRANSLATE TO ENGLISH</button>
+      </div>
+    </div>
 
-  <!-- Output -->
-  <div class="s-ttl"><span>OUTPUT</span></div>
-  <div class="frame subtle">
-    <span class="c tl"></span><span class="c tr"></span>
-    <span class="c bl"></span><span class="c br"></span>
-    <div class="output-box placeholder" id="tr-output">Translation will appear here…</div>
-  </div>
+    <!-- STEP 3 -->
+    <div id="pdf-step3" class="hide">
+      <div class="s-ttl mt-16">
+        <span>STEP 3 — ENGLISH OUTPUT</span>
+        <span class="lime">● TRANSLATED</span>
+      </div>
+      <div class="frame subtle">
+        <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+        <div class="output-box" id="pdf-en-output" style="min-height:60px;"></div>
+      </div>
+      <div class="row gap-12 mt-12">
+        <button class="btn flex-1" id="pdf-speak">🔊 SPEAK</button>
+        <button class="btn flex-1" id="pdf-copy-en">⧉ COPY</button>
+        <button class="btn flex-1" id="pdf-download-en">⬇ DOWNLOAD</button>
+      </div>
+    </div>
 
-  <div class="row gap-12 mt-12">
-    <button class="btn hide" id="tr-color" title="Color output text">🎨</button>
-    <button class="btn flex-1" id="tr-speak">🔊 SPEAK</button>
-    <button class="btn flex-1" id="tr-copy">⧉ COPY</button>
-    <button class="btn flex-1" id="tr-download">⬇ DOWNLOAD</button>
-    <button class="btn flex-1" id="tr-history">📚 HISTORY</button>
-  </div>
+  </div><!-- end pdffix section -->
 
-  <div id="tr-sendout" class="hide"></div>
   <div id="tr-module-backup" class="mt-4"></div>
 </div>

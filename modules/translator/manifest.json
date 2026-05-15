@@ -51,6 +51,13 @@
         "to": "English",
         "default": "natural",
         "script": "devanagari"
+      },
+      {
+        "key": "pdffix",
+        "label": "PDF FIX",
+        "from": "Garbled PDF",
+        "to": "Devanagari → English",
+        "default": "natural"
       }
     ],
     "historyMax": 20,

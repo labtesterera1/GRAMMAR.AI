@@ -67,14 +67,166 @@ export default async function init({ root, module }) {
 
   if (elModNum) elModNum.textContent = `MOD ${module.num} / ${module.name.toUpperCase()}`;
 
-  /* ─── Show/hide correct input section based on direction ─── */
+  /* ─── PDF FIX element refs ─── */
+  const elStdSection  = $('#tr-standard-section', root);
+  const elPdfSection  = $('#tr-pdffix-section', root);
+  const elPdfPaste    = $('#pdf-paste', root);
+  const elPdfInput    = $('#pdf-input', root);
+  const elPdfFixBtn   = $('#pdf-fix-btn', root);
+  const elPdfClearBtn = $('#pdf-clear-btn', root);
+  const elPdfStep2    = $('#pdf-step2', root);
+  const elPdfStep3    = $('#pdf-step3', root);
+  const elPdfFixed    = $('#pdf-fixed-output', root);
+  const elPdfFixSt    = $('#pdf-fix-status', root);
+  const elPdfCopyFix  = $('#pdf-copy-fixed', root);
+  const elPdfTransBtn = $('#pdf-translate-btn', root);
+  const elPdfEnOut    = $('#pdf-en-output', root);
+  const elPdfSpeak    = $('#pdf-speak', root);
+  const elPdfCopyEn   = $('#pdf-copy-en', root);
+  const elPdfDlEn     = $('#pdf-download-en', root);
+
+  /* ─── Show/hide correct section based on direction ─── */
   function paintInputUI() {
+    const isPdf  = state.direction === 'pdffix';
     const isDeva = state.direction === 'deva2en';
-    elStdWrap?.classList.toggle('hide', isDeva);
-    elDevaWrap?.classList.toggle('hide', !isDeva);
-    // Toolbar only relevant for standard input
-    if (elTbMount) elTbMount.style.display = isDeva ? 'none' : '';
+
+    // Top-level section toggle
+    elStdSection?.classList.toggle('hide', isPdf);
+    elPdfSection?.classList.toggle('hide', !isPdf);
+
+    if (!isPdf) {
+      // Standard section: toggle deva vs regular input
+      elStdWrap?.classList.toggle('hide', isDeva);
+      elDevaWrap?.classList.toggle('hide', !isDeva);
+      if (elTbMount) elTbMount.style.display = isDeva ? 'none' : '';
+    }
   }
+
+  /* ─── PDF FIX wiring ─── */
+
+  // Paste from clipboard
+  elPdfPaste?.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) { toast('Clipboard is empty'); return; }
+      elPdfInput.value = text;
+      toast('Pasted from clipboard', 'success');
+    } catch {
+      toast('Clipboard access denied — paste manually (Ctrl+V)', 'error');
+    }
+  });
+
+  // Clear all
+  elPdfClearBtn?.addEventListener('click', () => {
+    elPdfInput.value = '';
+    elPdfStep2?.classList.add('hide');
+    elPdfStep3?.classList.add('hide');
+    if (elPdfFixed) elPdfFixed.textContent = '';
+    if (elPdfEnOut) elPdfEnOut.textContent = '';
+  });
+
+  // Step 1 → Step 2: Fix encoding
+  elPdfFixBtn?.addEventListener('click', async () => {
+    const raw = elPdfInput?.value.trim();
+    if (!raw) { toast('Paste garbled PDF text first'); return; }
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    elPdfFixBtn.disabled = true;
+    elPdfFixBtn.textContent = '⚙ FIXING…';
+    elPdfStep2?.classList.add('hide');
+    elPdfStep3?.classList.add('hide');
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: prompts.pdf_fix_system || 'Fix garbled Hindi PDF text to proper Devanagari Unicode. Return only fixed text.' },
+        { role: 'user',   content: raw }
+      ], { temperature: 0.2, maxTokens: 2000 });
+
+      if (elPdfFixed) elPdfFixed.textContent = r.text;
+      if (elPdfFixSt) { elPdfFixSt.textContent = '● FIXED · ' + r.route.toUpperCase(); }
+      elPdfStep2?.classList.remove('hide');
+      toast('Encoding fixed — review and translate', 'success');
+    } catch (e) {
+      toast('Fix failed: ' + (e.details?.[0] || e.message), 'error');
+    } finally {
+      elPdfFixBtn.disabled = false;
+      elPdfFixBtn.textContent = '⚙ FIX ENCODING';
+    }
+  });
+
+  // Copy fixed Hindi
+  elPdfCopyFix?.addEventListener('click', () => {
+    const text = elPdfFixed?.textContent || '';
+    if (!text) { toast('Nothing to copy yet'); return; }
+    copyToClipboard(text);
+  });
+
+  // Step 2 → Step 3: Translate fixed Devanagari to English
+  elPdfTransBtn?.addEventListener('click', async () => {
+    const hindi = elPdfFixed?.textContent?.trim() || '';
+    if (!hindi) { toast('Fix encoding first'); return; }
+    if (!AI.hasAnyRoute()) { showNoRouteHelp(); return; }
+
+    elPdfTransBtn.disabled = true;
+    elPdfTransBtn.textContent = '▸ TRANSLATING…';
+    elPdfStep3?.classList.add('hide');
+
+    try {
+      const r = await AI.chat([
+        { role: 'system', content: prompts.pdf_fix_translate_system || 'Translate Hindi Devanagari to natural English. Return only the translation.' },
+        { role: 'user',   content: 'Translate to English:\n\n' + hindi }
+      ], { temperature: 0.4, maxTokens: 1500 });
+
+      if (elPdfEnOut) elPdfEnOut.innerHTML = renderMd(r.text);
+      elPdfStep3?.classList.remove('hide');
+
+      // Push to history
+      state.history.unshift({
+        ts:        Date.now(),
+        direction: 'pdffix',
+        mode:      'fix',
+        input:     hindi,
+        output:    r.text
+      });
+      const max = opts.historyMax || 20;
+      if (state.history.length > max) state.history = state.history.slice(0, max);
+      SCOPE.set('history', state.history);
+      refreshHist();
+
+      toast('Done · ' + r.route, 'success');
+    } catch (e) {
+      toast('Translation failed: ' + (e.details?.[0] || e.message), 'error');
+    } finally {
+      elPdfTransBtn.disabled = false;
+      elPdfTransBtn.textContent = '▸ TRANSLATE TO ENGLISH';
+    }
+  });
+
+  // PDF Speak
+  elPdfSpeak?.addEventListener('click', () => {
+    const text = elPdfEnOut?.innerText || '';
+    if (!text) { toast('Nothing to speak yet'); return; }
+    if (!('speechSynthesis' in window)) { toast('TTS not supported', 'error'); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-IN'; u.rate = 0.92;
+    speechSynthesis.speak(u);
+    toast('Speaking…');
+  });
+
+  // PDF Copy English
+  elPdfCopyEn?.addEventListener('click', () => {
+    const text = elPdfEnOut?.innerText || '';
+    if (!text) { toast('Nothing to copy yet'); return; }
+    copyToClipboard(text);
+  });
+
+  // PDF Download English
+  elPdfDlEn?.addEventListener('click', () => {
+    const text = elPdfEnOut?.innerText || '';
+    if (!text) { toast('Nothing to download yet'); return; }
+    downloadFile(gFileName('TRANSLATOR', 'TR'), text, 'text/plain');
+  });
 
   // Direction chips
   elDir.innerHTML = directions.map(d =>
@@ -93,7 +245,6 @@ export default async function init({ root, module }) {
   paintModes();
   paintInputUI();
   elInput.value = state.input;
-  // Restore Devanagari input if last direction was deva2en
   if (state.direction === 'deva2en') elDevaInput.value = state.input;
   if (state.output) {
     elOutput.innerHTML = renderMd(state.output);
@@ -193,8 +344,16 @@ export default async function init({ root, module }) {
   function paintModes() {
     const dir = directions.find(d => d.key === state.direction);
     if (!dir) return;
+    // PDF FIX has no mode selector — hide it
+    const modeSection = elMode?.closest('.s-ttl')?.parentElement;
+    if (state.direction === 'pdffix') {
+      elMode?.closest('.s-ttl + *')?.classList?.add('hide');
+      elMode?.previousElementSibling?.classList?.add('hide');
+      elMode?.classList?.add('hide');
+      return;
+    }
+    elMode?.classList?.remove('hide');
     const cur = state.modeByDir[state.direction] || dir.default;
-    // deva2en uses deva_modes from manifest
     const modeList = state.direction === 'deva2en'
       ? (opts.deva_modes || dir.modes || [])
       : (dir.modes || []);
