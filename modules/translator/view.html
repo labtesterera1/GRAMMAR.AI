@@ -109,14 +109,22 @@
       📋 PASTE FROM CLIPBOARD
     </button>
     <textarea class="composer-input" id="pdf-input"
-      placeholder="Paste garbled Hindi PDF text here… e.g. dEiI~(k ij ut+jsa x<+k, gq,"
+      placeholder="Paste garbled Hindi PDF text here… e.g. vki Iyht 'kkar gks tk,°"
       rows="5"
       spellcheck="false"
       autocomplete="off"
       autocorrect="off"
       autocapitalize="none"
       style="font-family:var(--mono);font-size:13px;"></textarea>
-    <div class="row gap-12 mt-12">
+
+    <!-- Font type info -->
+    <div class="mono dim" style="font-size:9px;letter-spacing:0.06em;line-height:1.6;margin-top:6px;margin-bottom:10px;">
+      Supports Krutidev encoding (most common — govt docs, newspapers, old publications).
+      AI applies the complete Krutidev→Devanagari mapping table for accurate conversion.
+      Works best with 1-2 paragraphs at a time.
+    </div>
+
+    <div class="row gap-12">
       <button class="btn btn-primary flex-1" id="pdf-fix-btn">⚙ FIX ENCODING</button>
       <button class="btn btn-rust" id="pdf-clear-btn">CLEAR ALL</button>
     </div>

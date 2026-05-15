@@ -125,7 +125,7 @@ export default async function init({ root, module }) {
     if (elPdfEnOut) elPdfEnOut.textContent = '';
   });
 
-  // Step 1 → Step 2: Fix encoding
+  // Step 1 → Step 2: Fix encoding using AI + complete Krutidev mapping table
   elPdfFixBtn?.addEventListener('click', async () => {
     const raw = elPdfInput?.value.trim();
     if (!raw) { toast('Paste garbled PDF text first'); return; }
@@ -138,12 +138,15 @@ export default async function init({ root, module }) {
 
     try {
       const r = await AI.chat([
-        { role: 'system', content: prompts.pdf_fix_system || 'Fix garbled Hindi PDF text to proper Devanagari Unicode. Return only fixed text.' },
+        { role: 'system', content: prompts.pdf_fix_system || 'Convert Krutidev-encoded text to Unicode Devanagari. Return only the converted text.' },
         { role: 'user',   content: raw }
-      ], { temperature: 0.2, maxTokens: 2000 });
+      ], { temperature: 0.1, maxTokens: 2000 });
 
       if (elPdfFixed) elPdfFixed.textContent = r.text;
-      if (elPdfFixSt) { elPdfFixSt.textContent = '● FIXED · ' + r.route.toUpperCase(); }
+      if (elPdfFixSt) {
+        elPdfFixSt.textContent = '● FIXED · ' + r.route.toUpperCase();
+        elPdfFixSt.style.color = 'var(--lime)';
+      }
       elPdfStep2?.classList.remove('hide');
       toast('Encoding fixed — review and translate', 'success');
     } catch (e) {
