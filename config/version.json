@@ -1,19 +1,19 @@
 {
   "name": "Grammar.AI",
   "tagline": "SmartApp · Modular · Local-First",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "build": "2026.05.16",
   "channel": "stable",
   "history": [
     {
-      "version": "1.4.3",
+      "version": "1.4.4",
       "date": "2026-05-16",
-      "notes": "Translator: PDF FIX tab — paste garbled Hindi PDF text, AI fixes encoding to proper Devanagari (Step 2), then translate to English (Step 3). Noto Sans Devanagari on fixed output. Works best 1-2 paragraphs at a time."
+      "notes": "PDF FIX: replaced AI guessing with complete Krutidev→Unicode character mapping table (250+ mappings). Instant client-side conversion, no AI call needed for Step 2. Confidence detection shows HIGH/MEDIUM/LOW based on input analysis."
     },
     {
-      "version": "1.4.2",
-      "date": "2026-05-13",
-      "notes": "हिंदी→EN accepts Devanagari + Roman Hindi + mixed. Auto-detect."
+      "version": "1.4.3",
+      "date": "2026-05-16",
+      "notes": "Translator: PDF FIX tab added — 3-step flow: paste garbled → fix encoding → translate to English."
     }
   ]
 }
