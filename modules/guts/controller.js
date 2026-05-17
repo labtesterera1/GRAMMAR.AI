@@ -57,7 +57,8 @@ function loadVoices(cb){
 
 /* ── Speech ───────────────────────────────────────────────────── */
 var _spk=false,_pau=false,_rate=1.0,_sents=[],_idx=0,_spkCb=null;
-var _raRefs={}; /* {ctx: {play,pause,stop}} for _raSync */
+var _raRefs={};
+var _raMode=SCOPE.get("ra.mode","system"); /* {ctx: {play,pause,stop}} for _raSync */
 
 function speak(text,rate,cb){
   if(!('speechSynthesis' in window)){toast('Speech not supported');return;}
@@ -911,8 +912,41 @@ export default async function init({root,module:mod}){
     elC.querySelector('#t-chpin').addEventListener('click',function(){if(!confirm('Change PIN?'))return;SCOPE.remove('pinHash');lock();toast('PIN cleared - set a new one');});
   }
 
-  function doExport(){if(!gL().length&&!gW().length&&!gN().length){toast('Nothing to export yet');return;}var data={_meta:{module:'Get Up To Speed',version:V,exportedAt:new Date().toISOString()},lessons:gL(),wordbank:gW(),notes:gN(),knowledge:gK()};downloadFile('guts-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(data,null,2),'application/json');toast('Export downloaded');}
-  async function doImport(){var file=await pickFile('.json,application/json');if(!file)return;try{var data=JSON.parse(await file.text());if(!data.lessons)throw new Error('Invalid backup');(data.lessons||[]).forEach(function(l){sL(l);});(data.wordbank||[]).forEach(function(w){sW(w);});(data.notes||[]).forEach(function(n){sN(n);});if(data.knowledge)SCOPE.set('knowledge',data.knowledge);toast('Imported '+data.lessons.length+' lessons');renderTransfer();}catch(e){toast('Import failed: '+e.message);}}
+  function doExport(){
+  if(!gL().length&&!gW().length&&!gN().length){toast('Nothing to export yet');return;}
+  /* Also export AI word caches */
+  var cache={};
+  gW().forEach(function(w){
+    var wc=SCOPE.get('wc.'+w.word,null);if(wc)cache['wc.'+w.word]=wc;
+    var ah=SCOPE.get('ah.'+w.word,null);if(ah)cache['ah.'+w.word]=ah;
+  });
+  gL().forEach(function(l){
+    l.allVocab.forEach(function(w){
+      var ah=SCOPE.get('ah.'+w,null);if(ah&&!cache['ah.'+w])cache['ah.'+w]=ah;
+    });
+  });
+  var data={
+    _meta:{module:'Get Up To Speed',version:V,exportedAt:new Date().toISOString()},
+    lessons:gL(),wordbank:gW(),notes:gN(),knowledge:gK(),cache:cache
+  };
+  downloadFile('guts-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(data,null,2),'application/json');
+  toast('Export downloaded - '+gL().length+' lessons | '+gW().length+' words | '+gN().length+' pages');
+}
+  async function doImport(){
+  var file=await pickFile('.json,application/json');if(!file)return;
+  try{
+    var data=JSON.parse(await file.text());
+    if(!data.lessons)throw new Error('Invalid GUTS backup file');
+    (data.lessons||[]).forEach(function(l){sL(l);});
+    (data.wordbank||[]).forEach(function(w){sW(w);});
+    (data.notes||[]).forEach(function(n){sN(n);});
+    if(data.knowledge)SCOPE.set('knowledge',data.knowledge);
+    /* Restore AI word caches */
+    if(data.cache){Object.entries(data.cache).forEach(function(e){SCOPE.set(e[0],e[1]);});}
+    var msg='Imported: '+data.lessons.length+' lessons | '+(data.wordbank||[]).length+' words | '+(data.notes||[]).length+' pages';
+    toast(msg);renderTransfer();
+  }catch(e){toast('Import failed: '+e.message);}
+}
 
   return{
     onShow:function(){setAI();},
