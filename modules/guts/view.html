@@ -1,0 +1,126 @@
+<!-- ═══════════════════════════════════════════════════════════
+     GUTS · Get Up To Speed · v1.0.0 · view.html
+     Gate → shown while locked | Main → shown when unlocked
+     ═══════════════════════════════════════════════════════════ -->
+
+<!-- ── PIN GATE ─────────────────────────────────────────────── -->
+<div id="guts-gate" class="page-inner">
+  <div class="kicker">
+    <span>MOD 09 / GET UP TO SPEED</span>
+    <span class="rust" id="guts-gate-status">● LOCKED</span>
+  </div>
+  <div class="headline">Get Up To Speed</div>
+  <div class="subline">
+    <span>UPLOAD · READ · LEARN · EN↔HI</span>
+    <span id="guts-gate-sub">ENTER PASSWORD</span>
+  </div>
+  <div class="ticks">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="frame subtle notes-gate-box mt-12">
+    <span class="c tl"></span><span class="c tr"></span>
+    <span class="c bl"></span><span class="c br"></span>
+
+    <div class="mono" id="guts-gate-label"
+         style="font-size:9px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px">
+      ENTER 6-DIGIT PASSWORD
+    </div>
+
+    <div class="pin-dots" id="guts-pin-dots">
+      <span class="pin-dot" data-i="0"></span>
+      <span class="pin-dot" data-i="1"></span>
+      <span class="pin-dot" data-i="2"></span>
+      <span class="pin-dot" data-i="3"></span>
+      <span class="pin-dot" data-i="4"></span>
+      <span class="pin-dot" data-i="5"></span>
+    </div>
+
+    <div class="mono rust" id="guts-pin-error"
+         style="font-size:11px;letter-spacing:.06em;margin-top:10px;min-height:18px;text-align:center"></div>
+
+    <div class="numpad" id="guts-numpad">
+      <button class="num-btn" data-n="1">1</button>
+      <button class="num-btn" data-n="2">2</button>
+      <button class="num-btn" data-n="3">3</button>
+      <button class="num-btn" data-n="4">4</button>
+      <button class="num-btn" data-n="5">5</button>
+      <button class="num-btn" data-n="6">6</button>
+      <button class="num-btn" data-n="7">7</button>
+      <button class="num-btn" data-n="8">8</button>
+      <button class="num-btn" data-n="9">9</button>
+      <button class="num-btn num-del" id="guts-pin-clear">CLR</button>
+      <button class="num-btn" data-n="0">0</button>
+      <button class="num-btn num-ok" id="guts-pin-ok">OK</button>
+    </div>
+
+    <div id="guts-pin-reset-row" style="text-align:center;margin-top:14px" class="hide">
+      <button class="btn-ghost" id="guts-pin-reset"
+              style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">
+        ↺ RESET PASSWORD
+      </button>
+    </div>
+  </div>
+
+  <div class="mono" style="font-size:9px;color:var(--dim);text-align:center;margin-top:20px;letter-spacing:.1em">
+    GET UP TO SPEED · v1.0.0
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT (hidden until unlock) ───────────────────── -->
+<div id="guts-main" class="page-inner hide">
+
+  <!-- Kicker: back-btn auto-injected by loader -->
+  <div class="kicker">
+    <span>MOD 09 / GET UP TO SPEED</span>
+    <span class="badge badge-ready" style="font-size:8px;padding:2px 7px">v1.0.0</span>
+    <span id="guts-ai-status" class="mono"
+          style="font-size:9px;color:var(--dim);letter-spacing:.08em">● AI OFF</span>
+    <button class="btn btn-ghost btn-icon" id="guts-lock-btn"
+            style="font-size:10px;padding:3px 8px;margin-left:4px" title="Lock module">🔒</button>
+  </div>
+
+  <!-- Tab navigation -->
+  <div class="guts-tab-bar" id="guts-tab-bar">
+    <button class="guts-tab" data-tab="home">Home</button>
+    <button class="guts-tab" data-tab="upload">Upload</button>
+    <button class="guts-tab" data-tab="library">Library</button>
+    <button class="guts-tab" data-tab="words">Words</button>
+    <button class="guts-tab" data-tab="notes">Notes</button>
+    <button class="guts-tab" data-tab="transfer">↕</button>
+  </div>
+
+  <!-- Dynamic content rendered by controller -->
+  <div id="guts-content"></div>
+
+</div>
+
+<!-- Word detail popup (portal — fixed position) -->
+<div id="guts-word-popup" class="guts-word-popup hide">
+  <div class="guts-popup-word" id="gwp-word"></div>
+  <div class="guts-popup-freq" id="gwp-freq"></div>
+  <div class="guts-popup-hindi" id="gwp-hindi"></div>
+  <div class="guts-popup-ex" id="gwp-ex"></div>
+
+  <div class="guts-popup-enrich" id="gwp-enrich">
+    <div class="guts-enrich-section">
+      <div class="guts-enrich-label">EN · SIMILAR</div>
+      <div class="guts-enrich-body" id="gwp-synonyms">—</div>
+    </div>
+    <div class="guts-enrich-section">
+      <div class="guts-enrich-label">HI · DEVANAGARI</div>
+      <div class="guts-enrich-body" id="gwp-deva" style="font-family:'Noto Sans Devanagari',sans-serif;font-size:14px">—</div>
+    </div>
+  </div>
+
+  <div class="guts-popup-actions">
+    <button class="btn btn-primary btn-icon" id="gwp-enrich-btn">✨ Enrich</button>
+    <button class="btn btn-icon" id="gwp-save">+ Words</button>
+    <button class="btn btn-icon" id="gwp-listen">▶ Say</button>
+    <button class="btn btn-ghost btn-icon" id="gwp-close">✕</button>
+  </div>
+</div>

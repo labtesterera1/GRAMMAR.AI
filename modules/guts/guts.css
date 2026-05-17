@@ -1,0 +1,619 @@
+/* ════════════════════════════════════════════════════════════════
+   GUTS · Get Up To Speed · guts.css · v1.0.0
+   All classes prefixed with .guts- to avoid collisions.
+   Uses Grammar.AI theme vars: --bg --surface --surface-2 --surface-3
+   --border --border-2 --border-3 --text --muted --dim
+   --lime --lime-dim --lime-soft --rust --rust-dim --warn
+   --serif --mono --ease
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Tab bar ─────────────────────────────────────────────────── */
+.guts-tab-bar {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.guts-tab-bar::-webkit-scrollbar { display: none; }
+
+.guts-tab {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 0.5px solid var(--border-2);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+  transition: all .15s var(--ease);
+}
+.guts-tab:hover { color: var(--text); border-color: var(--border-3); }
+.guts-tab.active {
+  color: var(--bg);
+  background: var(--lime);
+  border-color: var(--lime);
+  font-weight: 600;
+}
+
+/* ── Stat bar ─────────────────────────────────────────────────── */
+.guts-stats {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.guts-stat {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  padding: 10px 6px;
+  text-align: center;
+}
+.guts-stat__n {
+  display: block;
+  font-family: var(--serif);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--lime);
+}
+.guts-stat__l {
+  display: block;
+  font-size: 8px;
+  letter-spacing: .12em;
+  color: var(--dim);
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+/* ── Section label ────────────────────────────────────────────── */
+.guts-section {
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin: 16px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.guts-section::after {
+  content: '';
+  flex: 1;
+  height: 0.5px;
+  background: var(--border);
+}
+
+/* ── Review banner ────────────────────────────────────────────── */
+.guts-review-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--lime-soft);
+  border: 0.5px solid var(--lime-dim);
+  margin-bottom: 14px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text);
+  transition: opacity .15s;
+}
+.guts-review-banner:hover { opacity: .85; }
+.guts-review-banner__arrow { margin-left: auto; color: var(--lime); }
+
+/* ── Lesson card ─────────────────────────────────────────────── */
+.guts-lesson-card {
+  position: relative;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  padding: 12px 14px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: border-color .15s var(--ease);
+}
+.guts-lesson-card:hover { border-color: var(--border-3); }
+.guts-lesson-card.featured { border-color: var(--lime-dim); }
+.guts-lesson-card__status {
+  font-size: 8px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.s-unread { color: var(--dim); }
+.s-reading { color: var(--warn); }
+.s-done    { color: var(--lime); }
+.guts-lesson-card__title {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.guts-lesson-card__meta { font-size: 9px; color: var(--muted); }
+.guts-lesson-card__arrow {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--dim);
+}
+
+/* ── Quick actions ───────────────────────────────────────────── */
+.guts-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.guts-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 14px 8px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s var(--ease);
+}
+.guts-action-btn:hover { border-color: var(--lime-dim); color: var(--lime); }
+.guts-action-btn__icon { font-size: 20px; }
+
+/* ── Upload area ─────────────────────────────────────────────── */
+.guts-upload-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.guts-upload-tab {
+  flex: 1;
+  padding: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: 0.5px solid var(--border-2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s var(--ease);
+}
+.guts-upload-tab.active { color: var(--bg); background: var(--lime); border-color: var(--lime); }
+
+.guts-input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.guts-input:focus { outline: 1px solid var(--lime-dim); border-color: var(--lime-dim); }
+.guts-input::placeholder { color: var(--dim); }
+
+.guts-textarea {
+  width: 100%;
+  padding: 10px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 150px;
+  margin-bottom: 8px;
+}
+.guts-textarea:focus { outline: 1px solid var(--lime-dim); border-color: var(--lime-dim); }
+
+.guts-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 14px;
+  border: 0.5px dashed var(--border-2);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s;
+  margin-bottom: 8px;
+}
+.guts-dropzone:hover { border-color: var(--lime-dim); }
+.guts-dropzone__label { font-size: 12px; color: var(--muted); }
+.guts-dropzone__hint  { font-size: 10px; color: var(--dim); }
+
+.guts-file-preview {
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.guts-file-preview__name { font-size: 11px; color: var(--lime); margin-bottom: 2px; }
+.guts-file-preview__meta { font-size: 9px;  color: var(--muted); margin-bottom: 5px; }
+.guts-file-preview__peek {
+  font-size: 10px;
+  color: var(--dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 70px;
+  overflow: hidden;
+}
+
+/* ── Read aloud bar ──────────────────────────────────────────── */
+.guts-ra-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.guts-ra-btn {
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 0.5px solid var(--border-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s var(--ease);
+}
+.guts-ra-btn:not(:disabled):hover { border-color: var(--lime-dim); color: var(--lime); }
+.guts-ra-btn:disabled { opacity: .3; cursor: not-allowed; }
+.guts-ra-speeds { display: flex; gap: 3px; margin-left: 2px; }
+.guts-ra-speed {
+  padding: 3px 7px;
+  font-family: var(--mono);
+  font-size: 9px;
+  border: 0.5px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all .12s;
+}
+.guts-ra-speed.active { border-color: var(--lime-dim); color: var(--lime); background: var(--lime-soft); }
+
+/* ── Story chunks ────────────────────────────────────────────── */
+.guts-chunk {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  padding: 13px 14px;
+  margin-bottom: 7px;
+}
+.guts-chunk.speaking { background: var(--lime-soft); border-color: var(--lime-dim); }
+.guts-chunk__num { font-size: 8px; color: var(--dim); letter-spacing: .14em; margin-bottom: 7px; }
+.guts-chunk__text { font-size: 13px; line-height: 1.8; color: var(--text); }
+.guts-chunk__phrases { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Word highlighting within chunks */
+.gw { cursor: pointer; }
+.gw.known { color: var(--lime); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.gw.saved { color: var(--warn); }
+.gw.freq  { font-weight: 600; }
+
+/* ── Vocab grid ──────────────────────────────────────────────── */
+.guts-vocab-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.guts-vocab-chip {
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 0.5px solid var(--border-2);
+  border-radius: 99px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s var(--ease);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.guts-vocab-chip:hover { border-color: var(--lime-dim); color: var(--lime); }
+.guts-vocab-chip.saved { border-color: var(--warn); color: var(--warn); }
+.guts-vocab-chip__hi  { font-size: 8px; color: var(--lime); font-family: 'Noto Sans Devanagari', sans-serif; }
+.guts-vocab-chip__freq{ font-size: 8px; color: var(--rust); }
+
+/* ── Phrase / pattern badges ─────────────────────────────────── */
+.guts-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 9px;
+  letter-spacing: .06em;
+  background: var(--lime-soft);
+  border: 0.5px solid var(--lime-dim);
+  color: var(--lime);
+}
+.guts-pattern {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--surface);
+  border-left: 2px solid var(--lime-dim);
+  padding: 9px 11px;
+  margin-bottom: 6px;
+}
+.guts-pattern__text { font-size: 12px; line-height: 1.6; color: var(--text); flex: 1; }
+.guts-pattern__listen {
+  font-size: 10px;
+  padding: 2px 7px;
+  background: transparent;
+  border: 0.5px solid var(--border-2);
+  color: var(--dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all .12s;
+}
+.guts-pattern__listen:hover { border-color: var(--lime-dim); color: var(--lime); }
+.guts-drill-hidden {
+  color: var(--dim);
+  font-style: italic;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--dim);
+}
+.guts-mini-btn {
+  font-size: 9px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 0.5px solid var(--border);
+  color: var(--dim);
+  cursor: pointer;
+  margin-left: auto;
+  transition: all .12s;
+}
+.guts-mini-btn:hover { border-color: var(--lime-dim); color: var(--lime); }
+
+/* ── Word popup ──────────────────────────────────────────────── */
+.guts-word-popup {
+  position: fixed;
+  bottom: 70px;
+  left: 14px;
+  right: 14px;
+  z-index: 4000;
+  background: var(--surface-2);
+  border: 0.5px solid var(--lime-dim);
+  padding: 14px 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  animation: guts-pop .18s var(--ease);
+}
+@keyframes guts-pop {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.guts-popup-word  { font-family: var(--serif); font-size: 26px; color: var(--text); margin-bottom: 2px; }
+.guts-popup-freq  { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.guts-popup-hindi { font-size: 14px; color: var(--lime); margin-bottom: 4px; font-family: 'Noto Sans Devanagari', sans-serif; }
+.guts-popup-ex    { font-size: 10px; color: var(--muted); font-style: italic; border-left: 2px solid var(--border-2); padding-left: 8px; margin-bottom: 10px; line-height: 1.5; }
+.guts-popup-enrich{ margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.guts-enrich-section { background: var(--surface); border: 0.5px solid var(--border); padding: 8px 10px; }
+.guts-enrich-label{ font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
+.guts-enrich-body { font-size: 12px; color: var(--text); line-height: 1.6; }
+.guts-popup-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* ── Quiz ────────────────────────────────────────────────────── */
+.guts-quiz-q {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.guts-quiz-sent { font-size: 13px; line-height: 1.6; color: var(--text); margin-bottom: 10px; }
+.guts-quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.guts-quiz-opt {
+  padding: 7px 10px;
+  background: transparent;
+  border: 0.5px solid var(--border-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s;
+}
+.guts-quiz-opt:hover:not(:disabled) { border-color: var(--lime-dim); color: var(--lime); }
+.guts-quiz-opt.correct { border-color: var(--lime); color: var(--lime); background: var(--lime-soft); }
+.guts-quiz-opt.wrong   { border-color: var(--rust); color: var(--rust); }
+.guts-quiz-result { font-size: 11px; font-weight: 600; margin-top: 8px; }
+
+/* ── Word bank cards ─────────────────────────────────────────── */
+.guts-wb-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.guts-wb-card.review { border-color: var(--lime-dim); }
+
+/* Section A: WORD */
+.guts-wb-section-a {
+  padding: 12px 14px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.guts-wb-word { font-family: var(--serif); font-size: 22px; color: var(--text); flex: 1; }
+.guts-wb-hindi{ font-size: 12px; color: var(--lime); font-family: 'Noto Sans Devanagari', sans-serif; margin-top: 2px; }
+.guts-wb-review-badge { font-size: 9px; color: var(--lime); letter-spacing: .08em; }
+.guts-wb-actions { display: flex; gap: 4px; align-items: flex-start; flex-shrink: 0; }
+.guts-wb-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 0.5px solid var(--border-2);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all .12s;
+}
+.guts-wb-btn:hover { color: var(--lime); border-color: var(--lime-dim); }
+.guts-wb-btn.del:hover { color: var(--rust); border-color: var(--rust-dim); }
+
+/* Section B: EN-SIMILAR */
+.guts-wb-section-b {
+  border-top: 0.5px solid var(--border);
+  padding: 8px 14px;
+}
+.guts-wb-section-label {
+  font-size: 8px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+.guts-wb-synonyms { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+.guts-wb-example  { font-size: 10px; color: var(--muted); font-style: italic; line-height: 1.5; }
+
+/* Section C: HI-Devanagari */
+.guts-wb-section-c {
+  border-top: 0.5px solid var(--border);
+  padding: 8px 14px;
+  background: var(--surface-2);
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 14px;
+  color: var(--lime);
+  line-height: 1.7;
+}
+
+/* Enrich button state */
+.guts-enrich-trigger {
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: .1em;
+  cursor: pointer;
+  padding: 2px 8px;
+  border: 0.5px dashed var(--border-2);
+  transition: all .12s;
+}
+.guts-enrich-trigger:hover { color: var(--lime); border-color: var(--lime-dim); }
+
+/* ── Notes ───────────────────────────────────────────────────── */
+.guts-pages-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.guts-pages-nav::-webkit-scrollbar { display: none; }
+.guts-page-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  border: 0.5px solid var(--border-2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s var(--ease);
+}
+.guts-page-btn.active { background: var(--lime); color: var(--bg); border-color: var(--lime); }
+.guts-page-btn.add    { color: var(--lime); border-color: var(--lime-dim); }
+
+.guts-note-title {
+  width: 100%;
+  padding: 7px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 22px;
+  margin-bottom: 10px;
+  outline: none;
+}
+.guts-note-title:focus { border-bottom-color: var(--lime-dim); }
+
+/* Rich text toolbar */
+.guts-rte-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-bottom: none;
+  flex-wrap: wrap;
+}
+.guts-rte-btn {
+  padding: 5px 9px;
+  font-family: var(--mono);
+  font-size: 12px;
+  border: 0.5px solid var(--border-2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s var(--ease);
+  white-space: nowrap;
+}
+.guts-rte-btn:hover, .guts-rte-btn.active {
+  border-color: var(--lime-dim);
+  color: var(--lime);
+  background: var(--lime-soft);
+}
+.guts-rte-btn.ra  { color: var(--lime); border-color: var(--lime-dim); }
+.guts-rte-btn.del { color: var(--rust); }
+.guts-rte-btn.del:hover { border-color: var(--rust-dim); background: rgba(201,122,90,.06); }
+
+.guts-rte {
+  min-height: 200px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.75;
+  outline: none;
+  word-break: break-word;
+}
+.guts-rte:empty::before { content: attr(data-placeholder); color: var(--dim); pointer-events: none; }
+.guts-rte h3 { font-family: var(--serif); font-size: 20px; font-weight: 400; margin: 8px 0 4px; }
+.guts-rte strong { color: var(--lime); }
+.guts-rte img { max-width: 100%; margin: 6px 0; }
+.guts-note-footer { display: flex; justify-content: space-between; padding: 5px 2px 0; }
+
+/* ── Transfer ────────────────────────────────────────────────── */
+.guts-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 0.5px solid var(--border);
+  font-size: 11px;
+}
+.guts-info-row:last-child { border-bottom: none; }
+.guts-info-row__k { color: var(--muted); letter-spacing: .06em; text-transform: uppercase; font-size: 10px; }
+.guts-info-row__v { color: var(--lime); font-family: var(--serif); font-size: 14px; }
+
+/* ── AI status dot ───────────────────────────────────────────── */
+.guts-ai-on  { color: var(--lime) !important; }
+.guts-ai-off { color: var(--dim)  !important; }
+
+/* ── Utility ──────────────────────────────────────────────────── */
+.guts-label {
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+  display: block;
+}
+.guts-label span { color: var(--dim); text-transform: none; letter-spacing: 0; margin-left: 5px; }
+.guts-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.guts-spinner { color: var(--muted); font-size: 10px; letter-spacing: .1em; animation: spin 1.5s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.guts-empty { padding: 32px 0; text-align: center; color: var(--dim); font-size: 12px; }
+.guts-empty__icon { font-size: 32px; margin-bottom: 10px; }

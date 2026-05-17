@@ -1,0 +1,13 @@
+{
+  "id": "guts",
+  "name": "Get Up To Speed",
+  "version": "1.0.0",
+  "description": "Story-based English learning: upload any file, AI-powered word enrichment (synonyms + Devanagari), read aloud, EN↔Hindi word bank, rich-text notes, PIN-locked, AI cascade (Groq → Cerebras → Gemini → Mistral).",
+  "icon": "📖",
+  "options": {
+    "passwordLength": 6,
+    "speechRates": [0.75, 1, 1.25, 1.5],
+    "maxLessonBytes": 51200,
+    "wordCachePrefix": "wc."
+  }
+}
