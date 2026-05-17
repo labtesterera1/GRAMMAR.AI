@@ -713,3 +713,164 @@
   word-break: break-word;
   font-family: var(--mono);
 }
+
+/* ── Image controls (v1.2) ───────────────────────────────────── */
+.guts-img-wrapper {
+  display: inline-block;
+  position: relative;
+  margin: 4px 2px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.guts-img-wrapper img {
+  display: block;
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.guts-img-toolbar {
+  position: absolute;
+  top: -36px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--lime-dim);
+  padding: 4px 8px;
+  white-space: nowrap;
+  z-index: 300;
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.guts-img-dims {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.guts-img-btn {
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  background: transparent;
+  border: 0.5px solid var(--border-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s;
+}
+.guts-img-btn:hover { border-color: var(--lime-dim); color: var(--lime); }
+.guts-img-btn.danger:hover { border-color: var(--rust-dim); color: var(--rust); }
+
+/* Four corner resize handles */
+.guts-img-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--lime);
+  border: 1.5px solid var(--bg);
+  border-radius: 1px;
+  z-index: 301;
+}
+.guts-img-handle.nw { top: -6px;    left: -6px;   cursor: nw-resize; }
+.guts-img-handle.ne { top: -6px;    right: -6px;  cursor: ne-resize; }
+.guts-img-handle.sw { bottom: -6px; left: -6px;   cursor: sw-resize; }
+.guts-img-handle.se { bottom: -6px; right: -6px;  cursor: se-resize; }
+
+/* ── RA mode toggle (v1.2) ───────────────────────────────────── */
+.guts-ra-modes {
+  display: flex;
+  gap: 3px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  border-right: 0.5px solid var(--border-2);
+  padding-right: 8px;
+}
+.guts-ra-mode-btn {
+  padding: 4px 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border: 0.5px solid var(--border-2);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .12s var(--ease);
+  white-space: nowrap;
+}
+.guts-ra-mode-btn.active {
+  background: var(--lime);
+  color: var(--bg);
+  border-color: var(--lime);
+  font-weight: 700;
+}
+
+/* ── Recording controls (v1.2) ───────────────────────────────── */
+.guts-rec-btn {
+  padding: 4px 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  border: 0.5px solid var(--rust);
+  background: transparent;
+  color: var(--rust);
+  cursor: pointer;
+  transition: all .12s;
+  white-space: nowrap;
+}
+.guts-rec-btn:hover { background: var(--rust); color: var(--bg); }
+.guts-rec-btn.recording {
+  background: var(--rust);
+  color: var(--bg);
+  animation: rec-pulse 1s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+.guts-rec-timer {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--rust);
+  margin-left: 6px;
+  letter-spacing: .1em;
+}
+.guts-rec-hint {
+  font-size: 9px;
+  color: var(--dim);
+  margin-left: 8px;
+  font-style: italic;
+}
+
+/* ── Word bank My Voice section (v1.2) ───────────────────────── */
+.guts-wb-rec {
+  border-top: 0.5px solid var(--border);
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: var(--surface-2);
+}
+.guts-wb-rec-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-right: 4px;
+}
+
+/* ── Voice settings in Transfer ──────────────────────────────── */
+.guts-voice-sel {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.guts-voice-sel:focus { outline: 1px solid var(--lime-dim); border-color: var(--lime-dim); }
