@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="modules/timezone/timezone.css" />
   <link rel="stylesheet" href="modules/notes/notes.css" />
   <link rel="stylesheet" href="modules/rewrite/rewrite.css" />
+  <link rel="stylesheet" href="modules/guts/guts.css" />
 </head>
 <body>
 
@@ -51,6 +52,12 @@
     <div class="bnav-inner" id="bnav-inner"></div>
   </nav>
 
+  <!-- PDF.js — used by GUTS for PDF upload -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- JSZip — used by GUTS for DOCX/PPTX upload -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <script type="module" src="core/app.js"></script>
 </body>
 </html>
+

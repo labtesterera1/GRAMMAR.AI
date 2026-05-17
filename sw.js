@@ -7,7 +7,7 @@
    - API calls: never cached (handled by browser, sent direct)
    ──────────────────────────────────────────────────────────────── */
 
-const VERSION = 'gai-v1.4.4';
+const VERSION = 'gai-v1.4.5'; // +MOD09 GUTS
 const SHELL_CACHE  = `${VERSION}-shell`;
 const CONFIG_CACHE = `${VERSION}-config`;
 
@@ -52,6 +52,10 @@ const SHELL_URLS = [
   'modules/rewrite/controller.js',
   'modules/rewrite/manifest.json',
   'modules/rewrite/rewrite.css',
+  'modules/guts/view.html',
+  'modules/guts/controller.js',
+  'modules/guts/manifest.json',
+  'modules/guts/guts.css',
   'modules/timezone/view.html',
   'modules/timezone/controller.js',
   'modules/timezone/manifest.json',
@@ -113,3 +117,4 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
