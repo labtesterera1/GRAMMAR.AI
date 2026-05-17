@@ -393,11 +393,9 @@ export default async function init({ root, module }) {
   }
 
   function updateDots() {
-    $$('.pin-dot','#guts-pin-dots' in root ? root : document).forEach((dot,i)=>{
-      const d = root.querySelector(`.pin-dot[data-i="${i}"]`);
-      if (!d) return;
-      d.classList.toggle('filled', i<pinEntry.length);
-      d.classList.toggle('active', i===pinEntry.length);
+    root.querySelectorAll('#guts-pin-dots .pin-dot').forEach((d, i) => {
+      d.classList.toggle('filled', i < pinEntry.length);
+      d.classList.toggle('active', i === pinEntry.length);
     });
   }
 
@@ -462,7 +460,6 @@ export default async function init({ root, module }) {
   }
 
   // Bind PIN numpad
-  $$('.num-btn','body').length; // warm up
   root.querySelectorAll('#guts-numpad .num-btn[data-n]').forEach(btn=>{
     btn.addEventListener('click',()=>handleDigit(btn.dataset.n));
   });
