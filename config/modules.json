@@ -80,6 +80,16 @@
       "status": "ready",
       "order": 8,
       "showInNav": true
+    },
+    {
+      "id": "guts",
+      "num": "09",
+      "name": "Get Up To Speed",
+      "tagline": "UPLOAD · READ · EN↔HI · NOTES",
+      "icon": "📖",
+      "status": "ready",
+      "order": 9,
+      "showInNav": true
     }
   ]
 }
